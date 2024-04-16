@@ -45,7 +45,7 @@
 typedef struct {
     struct gcm_disk_header header;
     BNR banner;
-    u8 icon_rgb5[64*64*2];
+    // u8 icon_rgb5[64*64*2];
     char path[128];
 } game_asset;
 
@@ -484,7 +484,7 @@ int main() {
         PNGU_ReleaseImageContext(ctx);
 
         free(png_buffer);
-#else
+#elif 0
         ret = dvd_custom_open(icon_path, FILE_ENTRY_TYPE_FILE);
         iprintf("OPEN ret: %08x\n", ret);
         file_status_t *status = dvd_custom_status();

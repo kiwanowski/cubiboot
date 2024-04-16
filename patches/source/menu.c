@@ -76,7 +76,7 @@ __attribute_reloc__ u32 *banner_ready;
 typedef struct {
     struct gcm_disk_header header;
     BNR banner;
-    u8 icon_rgb5[64*64*2];
+    // u8 icon_rgb5[64*64*2];
     char path[128];
 } game_asset;
 
@@ -273,10 +273,15 @@ __attribute_used__ void draw_save_icon(u32 index, u8 alpha, bool selected, bool 
 
         // icon
         tex_data *icon_tex = &m->data->tex->dat[1];
-        u32 target_texture_data = (u32)assets[index].icon_rgb5;
+        // u32 target_texture_data = (u32)assets[index].icon_rgb5;
+        u16 *source_texture_data = (u16*)assets[index].banner.pixelData;
+        u32 target_texture_data = (u32)source_texture_data;
 
         s32 desired_offset = (s32)((u32)target_texture_data - (u32)icon_tex);
         icon_tex->offset = desired_offset;
+        icon_tex->format = GX_TF_RGB5A3;
+        icon_tex->width = 96;
+        icon_tex->height = 32;
 
         // TODO: instead set m->data->mat[1].texmap_index[0] = 0xFFFF
         draw_partial(m, &m->data->parts[6]);
@@ -402,7 +407,8 @@ __attribute_used__ void custom_gameselect_menu(u8 broken_alpha_0, u8 alpha_1, u8
     draw_text("cubeboot loader", 20, 20, 4, &white);
 
     // box
-    draw_info_box(&white);
+    if (rmode->viTVMode >> 2 == VI_NTSC) // quirk
+        draw_info_box(&white);
 
     if (selected_slot < asset_count) {
         // info

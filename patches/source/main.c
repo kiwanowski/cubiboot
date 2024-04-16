@@ -59,9 +59,6 @@ __attribute_reloc__ void (*run)(register void* entry_point, register u32 clear_s
 __attribute_reloc__ void (*menu_init)();
 __attribute_reloc__ void (*main)();
 
-// external vars
-__attribute_reloc__ GXRModeObj *rmode;
-
 __attribute_reloc__ model *bg_outer_model;
 __attribute_reloc__ model *bg_inner_model;
 __attribute_reloc__ model *gc_text_model;
