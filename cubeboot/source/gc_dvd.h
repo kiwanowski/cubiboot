@@ -41,7 +41,8 @@ typedef struct
 } file_status_t;
 
 enum {
-    IPC_FILE_FLAG_DISABLECACHE = 0x01,
+    IPC_FILE_FLAG_DISABLECACHE    = 0x01,
+    IPC_FILE_FLAG_DISABLEFASTSEEK = 0x02,
 };
 typedef struct {
     char name[MAX_FILE_NAME];
@@ -84,7 +85,7 @@ void dvd_bootloader_boot();
 int dvd_cover_status();
 
 file_status_t *dvd_custom_status();
-int dvd_custom_open(char *path, uint8_t type);
+int dvd_custom_open(char *path, uint8_t type, uint8_t flags);
 int dvd_custom_readdir(file_entry_t* target);
 
 int dvd_flash_open(char *path, uint8_t type);

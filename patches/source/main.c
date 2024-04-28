@@ -435,7 +435,10 @@ __attribute_used__ void bs2start() {
     OSReport("we are about to look at %08x\n", (u32)boot_path);
     udelay(100 * 1000);
 
-    int ret = dvd_custom_open(boot_path);
+    OSReport("we are about to open %s\n", boot_path);
+    udelay(100 * 1000);
+
+    int ret = dvd_custom_open(boot_path, FILE_ENTRY_TYPE_FILE, 0);
     OSReport("OPEN ret: %08x\n", ret);
 
     prog_entrypoint = (u32)LoadGame_Apploader();

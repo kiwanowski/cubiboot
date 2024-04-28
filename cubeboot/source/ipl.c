@@ -92,6 +92,7 @@ void load_ipl() {
         __SYS_ReadROM(bs2, bs2_size, BS2_CODE_OFFSET);
         iprintf("TEST IPL D, %08x\n", *(u32*)bs2);
     } else {
+        iprintf("TEST IPL X\n");
         __SYS_ReadROM(bios_buffer, IPL_SIZE, 0);
 
         iprintf("TEST IPL A, %08x\n", *(u32*)bios_buffer);

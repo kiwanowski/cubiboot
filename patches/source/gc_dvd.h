@@ -58,7 +58,7 @@ int init_dvd();
 
 int dvd_flash_read(void* dst, unsigned int len, uint64_t offset);
 
-int dvd_custom_open(char *path);
+int dvd_custom_open(char *path, uint8_t type, uint8_t flags);
 int dvd_custom_readdir(file_entry_t* target);
 
 void dvd_motor_off();

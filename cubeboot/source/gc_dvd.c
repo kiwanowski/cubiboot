@@ -108,12 +108,13 @@ file_status_t *dvd_custom_status()
 	return &status;
 }
 
-int dvd_custom_open(char *path, uint8_t type)
+int dvd_custom_open(char *path, uint8_t type, uint8_t flags)
 {
   static file_entry_t entry __attribute__((aligned(32)));
   strncpy(entry.name, path, 256);
   entry.name[255] = 0;
   entry.type = type;
+  entry.flags = flags;
 
   iprintf("Opening: %s\n", entry.name);
 

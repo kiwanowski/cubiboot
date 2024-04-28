@@ -89,10 +89,14 @@ int dvd_flash_read(void* dst, unsigned int len, uint64_t offset)
 #define DVD_DI_DMA   (1<<1)
 #define DVD_DI_START (1<<0)
 
-int dvd_custom_open(char *path)
+
+int dvd_custom_open(char *path, uint8_t type, uint8_t flags)
 {
   __attribute__((aligned(32))) static file_entry_t entry;
-  strcpy(entry.name, path);
+  strncpy(entry.name, path, 256);
+  entry.name[255] = 0;
+  entry.type = type;
+  entry.flags = flags;
 
   OSReport("Opening: %s\n", entry.name);
 
@@ -103,7 +107,7 @@ int dvd_custom_open(char *path)
   dvd[2] = DVD_FLIPPY_OPEN;
   dvd[3] = 0;
   dvd[4] = sizeof(file_entry_t);
-  dvd[5] = (u32)&entry;
+  dvd[5] = (u32)&entry & 0x1FFFFFFF;
   dvd[6] = sizeof(file_entry_t);
   dvd[7] = (DVD_DI_MODE|DVD_DI_DMA|DVD_DI_START);
   while ((dvd[7] & 1) > 0) ;
@@ -116,7 +120,6 @@ int dvd_custom_open(char *path)
 int dvd_custom_readdir(file_entry_t* target)
 {
   __attribute__((aligned(32))) static file_entry_t dst;
-
   dvd[0] = 0x2E;
   dvd[1] = 0;
   dvd[2] = DVD_FLIPPY_READDIR;

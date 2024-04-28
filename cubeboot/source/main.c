@@ -204,7 +204,8 @@ int main() {
         memset(&settings, 0, sizeof(settings));
 
         // cube color
-        settings.cube_color = 0x660089;
+        // settings.cube_color = 0x660089;
+        settings.cube_color = 0; // default
 
         // cube logo
         settings.cube_logo = NULL;
@@ -438,11 +439,8 @@ int main() {
         strcpy(asset->path, "/");
         strcat(asset->path, ent.name);
 
-        ret = dvd_custom_open(asset->path, FILE_ENTRY_TYPE_FILE);
-		iprintf("OPEN ret: %08x\n", ret);
-
-        // TODO: remove this after testing on hardware
-        udelay(100 * 1000);
+        ret = dvd_custom_open(asset->path, FILE_ENTRY_TYPE_FILE, IPC_FILE_FLAG_DISABLECACHE | IPC_FILE_FLAG_DISABLEFASTSEEK);
+        iprintf("OPEN ret: %08x\n", ret);
 
         // get fst and disc header
         DiskHeader *hdr = __DVDFSInit();
@@ -454,7 +452,7 @@ int main() {
         // open file
         static dvdfileinfo file;
         if (!DVDOpen("opening.bnr", &file)) {
-            prog_halt("Could not the banner file\n");
+            prog_halt("Could not open the banner file\n");
         }
 
         // is 32b long
