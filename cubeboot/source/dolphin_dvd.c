@@ -54,7 +54,8 @@ DiskHeader *__DVDFSInit(void)
     if (header.DVDMagicWord != 0xC2339F3D) {
         //We'll do some error handling for this later
         iprintf("ERROR ERROR! MAGIC IS BAD, %08x\n", header.DVDMagicWord);
-        exit(1);
+        // TODO: this should prompt a failure later on
+        return NULL;
     }
 
     iprintf("FSTSize = 0x%08x\n", header.FSTSize);

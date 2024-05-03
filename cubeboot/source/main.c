@@ -434,16 +434,19 @@ int main() {
             continue;
 
         iprintf("READDIR ent(%u): %s [len=%d]\n", ent.type, ent.name, strlen(ent.name));
+        static char iso_path[128];
+        strcpy(iso_path, "/");
+        strcat(iso_path, ent.name);
 
-        game_asset *asset = &assets[current_asset_index];
-        strcpy(asset->path, "/");
-        strcat(asset->path, ent.name);
-
-        ret = dvd_custom_open(asset->path, FILE_ENTRY_TYPE_FILE, IPC_FILE_FLAG_DISABLECACHE | IPC_FILE_FLAG_DISABLEFASTSEEK);
+        ret = dvd_custom_open(iso_path, FILE_ENTRY_TYPE_FILE, IPC_FILE_FLAG_DISABLECACHE | IPC_FILE_FLAG_DISABLEFASTSEEK);
         iprintf("OPEN ret: %08x\n", ret);
 
         // get fst and disc header
         DiskHeader *hdr = __DVDFSInit();
+        if (hdr == NULL) {
+            iprintf("skipping bad ISO: %s\n", iso_path);
+            continue;
+        }
         char game_id[8];
         memcpy(game_id, hdr, 6);
         game_id[6] = '\x00';
@@ -454,6 +457,10 @@ int main() {
         if (!DVDOpen("opening.bnr", &file)) {
             prog_halt("Could not open the banner file\n");
         }
+
+        // setup asset
+        game_asset *asset = &assets[current_asset_index];
+        strcpy(asset->path, iso_path);
 
         // is 32b long
         dvd_read(&global_banner_buf, sizeof(BNR), file.addr);
