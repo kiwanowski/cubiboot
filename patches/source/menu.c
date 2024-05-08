@@ -97,25 +97,12 @@ static position_t icons_positions[40];
 
 
 // START file browser
-typedef struct {
-    char file_name[128]; // needs to be bumped to 128
-    char game_name[64]; // needs to be bumped to 128
-} game_dirent_t;
-
-game_dirent_t current_directory[256];
 
 // game_item_t game_items[32][8];
-
 // line_order
 
 // line animation list [8] depth
-// get anim push / pop working
-
-
-
 // first press -> lines 0, 1, 2, 3, 4 move up 
-
-
 
 // Define constants for max dimensions
 #define MAX_LINES 6
@@ -132,8 +119,6 @@ typedef struct {
 
 // Define the array to hold animations
 line_anim_t line_animation_list[MAX_LINES][MAX_ANIMATIONS_PER_LINE];
-
-
 
 // END file browser
 
@@ -280,15 +265,7 @@ __attribute_used__ void custom_gameselect_init() {
     banner_texture.unk10 = 0x00;
 
     // // init anim list
-    // for (int line_num = 0; line_num < 6; line_num++) {
-    //     int anim_slot = 0; // TODO: increase num of slots
-    //     line_anim_t *anim = &line_animation_list[line_num][anim_slot];
-    //     anim->is_animating = false;
-    //     anim->queue_index = -1;
-    //     anim->start_pos = 0;
-    //     anim->end_pos = 0;
-    //     anim->current_frame = 0;
-    // }
+    // ????
 }
 
 int selected_slot = 0;
@@ -404,26 +381,8 @@ __attribute_used__ void update_icon_positions() {
     const int base_y = 118;
 
     for (int row = 0; row < 5; row++) {
-        f32 mod_pos_y = 0;
+        // f32 mod_pos_y = 0;
         f32 mod_opacity = 1.0;
-        // if (row == 0 || row == 1 || row == 2) {
-        //     u32 anim_slot = 0;
-        //     line_anim_t *anim = &line_animation_list[0][anim_slot];
-        //     if (anim->is_animating) {
-        //         mod_pos_y = 5.0 * pow(anim->current_frame * 0.1, 1.8);
-        //         mod_opacity = (60.0 - (f32)anim->current_frame) / 60.0;
-
-        //         OSReport("current = %u, mod_pos_y = %f\n", anim->current_frame, mod_pos_y);
-
-        //         if (mod_pos_y > anim->end_pos) {
-        //             anim->is_animating = false;
-        //             move_frame = 0;
-        //             anim->queue_index = -1;
-        //         }
-
-        //         if (row == 0) anim->current_frame++;
-        //     }
-        // }
         for (int col = 0; col < 8; col++) {
             int slot_num = (row * 8) + col;
             position_t *pos = &icons_positions[slot_num];
@@ -623,15 +582,8 @@ __attribute_used__ s32 handle_gameselect_inputs() {
     }
 
     if (pad_status->buttons_down & PAD_TRIGGER_Z) {
-        // get_free_anim_slot()
-        //     // TODO: find next anim slot
-        //     u32 anim_slot = 0;
-        //     line_anim_t *anim = &line_animation_list[0][anim_slot];
-        //     anim->is_animating = true;
-        //     anim->queue_index = 0;
-        //     anim->start_pos = 0;
-        //     anim->end_pos = 120;
-        //     anim->current_frame = 0;
+        void (*OSDumpHeap)() = (void*)0x81307e1c;
+        OSDumpHeap();
     }
 
     if (pad_status->buttons_down & PAD_BUTTON_B) {

@@ -15,6 +15,7 @@
 #include "menu.h"
 
 #include "gc_dvd.h"
+#include "filebrowser.h"
 
 #define CUBE_TEX_WIDTH 84
 #define CUBE_TEX_HEIGHT 84
@@ -282,14 +283,14 @@ __attribute_used__ void pre_main() {
             rmode->viHeight = 448;
         }
 
-        // // sample points arranged in increasing Y order
-        // u8  sample_pattern[12][2] = {
-        //     {6,6},{6,6},{6,6},  // pix 0, 3 sample points, 1/12 units, 4 bits each
-        //     {6,6},{6,6},{6,6},  // pix 1
-        //     {6,6},{6,6},{6,6},  // pix 2
-        //     {6,6},{6,6},{6,6}   // pix 3
-        // };
-        // memcpy(&rmode->sample_pattern[0][0], &sample_pattern[0][0], (12*2));
+        // sample points arranged in increasing Y order
+        u8  sample_pattern[12][2] = {
+            {6,6},{6,6},{6,6},  // pix 0, 3 sample points, 1/12 units, 4 bits each
+            {6,6},{6,6},{6,6},  // pix 1
+            {6,6},{6,6},{6,6},  // pix 2
+            {6,6},{6,6},{6,6}   // pix 3
+        };
+        memcpy(&rmode->sample_pattern[0][0], &sample_pattern[0][0], (12*2));
 
         rmode->viTVMode = VI_TVMODE_NTSC_PROG;
         rmode->xfbMode = VI_XFBMODE_SF;
@@ -312,6 +313,9 @@ __attribute_used__ void pre_main() {
 
     OSReport("LOADCMD %x, %x, %x, %x\n", prog_entrypoint, prog_dst, prog_src, prog_len);
     memmove((void*)prog_dst, (void*)prog_src, prog_len);
+
+    file_enum_worker();
+    while(1);
 
     main();
 
@@ -426,12 +430,12 @@ void* LoadGame_Apploader() {
     // SetMSR(msr);
 
     // start disc drive & read apploader
-    err = DVD_LowRead64(buffer,0x20,0x2440);
+    err = dvd_read(buffer,0x20,0x2440);
     if (err) {
         OSReport("Could not load apploader header\n");
         while(1);
     }
-    err = DVD_LowRead64((void*)0x81200000,((*(unsigned long*)((u32)buffer+0x14)) + 31) &~31,0x2460);
+    err = dvd_read((void*)0x81200000,((*(unsigned long*)((u32)buffer+0x14)) + 31) &~31,0x2460);
     if (err) {
         OSReport("Could not load apploader data\n");
         while(1);
@@ -448,7 +452,7 @@ void* LoadGame_Apploader() {
         int res = app_main(&dst,&len,&offset);
 		OSReport("res = %d\n", res);
         if (!res) break;
-        err = DVD_LowRead64(dst,len,offset);
+        err = dvd_read(dst,len,offset);
         if (err) {
             OSReport("Apploader read failed\n");
             while(1);
@@ -482,7 +486,7 @@ __attribute_used__ void bs2start() {
     OSReport("we are about to open %s\n", boot_path);
     // udelay(100 * 1000);
 
-    int ret = dvd_custom_open(boot_path, FILE_ENTRY_TYPE_FILE, 0);
+    int ret = dvd_custom_open(IPC_DEVICE_SD, boot_path, FILE_ENTRY_TYPE_FILE, 0);
     OSReport("OPEN ret: %08x\n", ret);
 
     prog_entrypoint = (u32)LoadGame_Apploader();

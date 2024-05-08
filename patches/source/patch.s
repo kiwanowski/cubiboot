@@ -4,8 +4,24 @@
 
 // patch_inst vNTSC_11(_change_background_color) 0x81481cc8 .4byte 0xFFFF00FF
 // patch_inst vNTSC_11(_test_only_a) 0x81301210 li r3, 0
-// patch_inst vNTSC_11(_test_only_b) 0x813010e4 trap
+// patch_inst vNTSC_11(_test_only_b) 0x81307dc8 trap
 patch_inst vNTSC_11(_skip_menu_logo) 0x8130d178 li r3, 5
+// patch_inst vNTSC_11(_reduce_heap_size) 0x81307df4 lis r5, -0x7f00 // 0x81100000 -> 0x81000000
+patch_inst vNTSC_11(_reduce_arena_size) 0x8135825c lis r3, -0x7ea0 // 0x81700000 -> 0x81600000
+
+// patch_inst vNTSC_11(_trap_dvd_open) 0x81362678 trap
+// patch_inst vNTSC_11(_trap_dvd_fast_open) 0x81362604 trap
+// patch_inst vNTSC_11(_trap_dvd_read_bs2) 0x81364818 trap
+// patch_inst vNTSC_11(_trap_dvd_read_async) 0x8136473c trap
+// patch_inst vNTSC_11(_trap_dvd_read) 0x81362988 trap
+// patch_inst vNTSC_11(_trap_dvd_read_diskid) 0x813648e8 trap
+// patch_inst vNTSC_11(_trap_dvd_fst_path) 0x81362310 trap
+// patch_inst vNTSC_11(_trap_dvd_close) 0x81362740 trap
+// patch_inst vNTSC_11(_trap_dvd_reset) 0x81364cc0 trap
+// patch_inst vNTSC_11(_trap_dvd_audio_config) 0x81364b48 trap
+// patch_inst vNTSC_11(_trap_dvd_prep_stream) 0x81362ac4 trap
+// patch_inst vNTSC_11(_trap_dvd_low_motor) 0x81361d60 trap
+// patch_inst vNTSC_11(_trap_dvd_change_disc) 0x81364c04 trap
 
 // patch_inst vNTSC_11(_force_english_lang) 0x8130b73c li r0, 0 // NTSC Only
 // patch_inst vNTSC_11(_gameselect_hide_cubes) 0x81327454 nop
@@ -82,13 +98,8 @@ patch_inst vPAL_12(_replace_bs2start_b) 0x81302414 bl bs2start // TODO: find off
 patch_inst_ntsc "_replace_report" 0x8133491c 0x8135a344 0x81300520 0x81300520 b custom_OSReport
 patch_inst_pal  "_replace_report" 0x8135d924 0x8135a264 0x81300520 b custom_OSReport
 
-patch_inst vNTSC_10(_patch_menu_init) 0x8130128c bl pre_menu_init // TODO: find offsets
-patch_inst vNTSC_11(_patch_menu_init) 0x81301094 bl pre_menu_init // TODO: find offsets
-patch_inst vNTSC_12_001(_patch_menu_init) 0x81301448 bl pre_menu_init // TODO: find offsets
-patch_inst vNTSC_12_101(_patch_menu_init) 0x8130144c bl pre_menu_init // TODO: find offsets
-patch_inst vPAL_10(_patch_menu_init) 0x81301094 bl pre_menu_init // TODO: find offsets
-patch_inst vPAL_11(_patch_menu_init) 0x81301094 bl pre_menu_init // TODO: find offsets
-patch_inst vPAL_12(_patch_menu_init) 0x81301200 bl pre_menu_init // TODO: find offsets
+patch_inst_ntsc "_patch_menu_init" 0x8130128c 0x81301094 0x81301448 0x8130144c bl pre_menu_init
+patch_inst_pal "_patch_menu_init" 0x81301094 0x81301094 0x81301200 bl pre_menu_init
 
 patch_inst vNTSC_10(_patch_menu_alpha_setup) 0x81312108 bl pre_menu_alpha_setup // TODO: find offsets
 patch_inst vNTSC_11(_patch_menu_alpha_setup) 0x81312358 bl pre_menu_alpha_setup // TODO: find offsets

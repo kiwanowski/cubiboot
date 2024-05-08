@@ -58,7 +58,6 @@ DiskHeader *__DVDFSInit(void)
         return NULL;
     }
 
-    iprintf("FSTSize = 0x%08x\n", header.FSTSize);
     iprintf("FSTOffset = 0x%08x\n", header.FSTOffset);
     iprintf("FSTSize = 0x%08x\n", header.FSTSize);
 

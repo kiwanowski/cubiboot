@@ -49,10 +49,9 @@ typedef struct {
     char path[128];
 } game_asset;
 
-__attribute__((aligned(32))) static BNR global_banner_buf;
-__attribute__((aligned(32))) static u8 global_png_buf[24 * 1024];
-
-__attribute__((aligned(32))) game_asset assets[32] = {};
+// __attribute__((aligned(32))) static BNR global_banner_buf;
+// __attribute__((aligned(32))) static u8 global_png_buf[24 * 1024];
+// __attribute__((aligned(32))) game_asset assets[32] = {};
 
 static u32 prog_entrypoint, prog_dst, prog_src, prog_len;
 
@@ -79,26 +78,6 @@ void __SYS_PreInit() {
 
     current_dol_len = &_edata - &_start;
     memcpy(current_dol_buf, &_start, current_dol_len);
-}
-
-// helper
-char *FileSuffix(char *path)
-{
-    char *result;
-    int i, n;
-
-    // assert(path != NULL);
-    n = strlen(path);
-    i = n - 1;
-    while ((i > 0) && (path[i] != '.') && (path[i] != '/') && (path[i] != '\\')) {
-        i--;
-    }
-    if ((i > 0) && (i < n - 1) && (path[i] == '.') && (path[i - 1] != '/') && (path[i - 1] != '\\')) {
-        result = path + i;
-    } else {
-        result = path + n;
-    }
-    return result;
 }
 
 int main() {
@@ -283,18 +262,6 @@ int main() {
         }
     }
 
-    if(settings.fallback_enabled) {
-        int fallback_size = get_file_size("/fallback.bin");
-        iprintf("fallback size = %d\n", fallback_size);
-
-        if (load_file_buffer("/fallback.bin", current_dol_buf) != SD_OK) {
-            prog_halt("Could not load fallback file\n");
-            return 1;
-        }
-
-        current_dol_len = fallback_size;
-    }
-
 //// fun stuff
 
     // load ipl
@@ -417,113 +384,6 @@ int main() {
     }
 
     // local vars
-    file_entry_t ent;
-    int current_asset_index = 0;
-    int ret = 0;
-
-    while(1) {
-		ret = dvd_custom_readdir(&ent);
-		iprintf("READDIR ret: %08x\n", ret);
-		if (ent.name[0] == 0)
-			break;
-		if (ent.type != 0)
-			continue;
-        if (strcmp(ent.name, "boot.iso") == 0)
-            continue;
-
-        char *ext = FileSuffix(ent.name);
-        if (strcmp(ext, ".iso") != 0)
-            continue;
-
-        iprintf("READDIR ent(%u): %s [len=%d]\n", ent.type, ent.name, strlen(ent.name));
-        static char iso_path[128];
-        strcpy(iso_path, "/");
-        strcat(iso_path, ent.name);
-
-        ret = dvd_custom_open(iso_path, FILE_ENTRY_TYPE_FILE, IPC_FILE_FLAG_DISABLECACHE | IPC_FILE_FLAG_DISABLEFASTSEEK);
-        iprintf("OPEN ret: %08x\n", ret);
-
-        // get fst and disc header
-        DiskHeader *hdr = __DVDFSInit();
-        if (hdr == NULL) {
-            iprintf("skipping bad ISO: %s\n", iso_path);
-            continue;
-        }
-        char game_id[8];
-        memcpy(game_id, hdr, 6);
-        game_id[6] = '\x00';
-        iprintf("GAME loaded: %s\n", game_id);
-
-        // open file
-        static dvdfileinfo file;
-        if (!DVDOpen("opening.bnr", &file)) {
-            prog_halt("Could not open the banner file\n");
-        }
-
-        iprintf("BNR Opened\n");
-
-        // setup asset
-        game_asset *asset = &assets[current_asset_index];
-        strcpy(asset->path, iso_path);
-
-        // is 32b long
-        dvd_read(&global_banner_buf, sizeof(BNR), file.addr);
-        memcpy(&asset->banner, &global_banner_buf, sizeof(BNR));
-
-        iprintf("BNR Read complete\n");
-
-        char icon_path[255];
-        sprintf(icon_path, "/disc_icons/%s.png", game_id);
-        iprintf("loading icon: %s\n", icon_path);
-
-#if 0
-        void *png_buffer = NULL;
-        if (load_file_dynamic(icon_path, &png_buffer) != SD_OK) {
-            prog_halt("Failed to load disc icon");
-        }
-
-        PNGUPROP imgProp;
-        IMGCTX ctx = PNGU_SelectImageFromBuffer(png_buffer);
-        int res = PNGU_GetImageProperties(ctx, &imgProp);
-        iprintf("parsed image res = %d, size = %ux%u\n", res, imgProp.imgWidth, imgProp.imgHeight);
-
-        if (imgProp.imgWidth != 64 || imgProp.imgHeight != 64) {
-            prog_halt("The image is not the correct size (64x64)\n");
-        }
-
-        PNGU_DecodeTo4x4RGB5A3(ctx, imgProp.imgWidth, imgProp.imgHeight, asset->icon_rgb5, 0);
-        PNGU_ReleaseImageContext(ctx);
-
-        free(png_buffer);
-#elif 0
-        ret = dvd_custom_open(icon_path, FILE_ENTRY_TYPE_FILE);
-        iprintf("OPEN ret: %08x\n", ret);
-        file_status_t *status = dvd_custom_status();
-        if (status->result > 0) {
-            prog_halt("Coult not open icon\n");
-        }
-        iprintf("SIZE: %08llx\n", status->fsize);
-
-        dvd_read(global_png_buf, (24 * 1024), 0);
-        // DumpHex(global_png_buf, 512);
-
-        PNGUPROP imgProp;
-        IMGCTX ctx = PNGU_SelectImageFromBuffer(global_png_buf);
-        int res = PNGU_GetImageProperties(ctx, &imgProp);
-        iprintf("parsed image res = %d, size = %ux%u\n", res, imgProp.imgWidth, imgProp.imgHeight);
-
-        if (imgProp.imgWidth != 64 || imgProp.imgHeight != 64) {
-            prog_halt("The image is not the correct size (64x64) padded to 24kb\n");
-        }
-
-        PNGU_DecodeTo4x4RGB5A3(ctx, imgProp.imgWidth, imgProp.imgHeight, asset->icon_rgb5, 0);
-        PNGU_ReleaseImageContext(ctx);
-#endif
-
-        current_asset_index++;
-        // break;
-    }
-
     u8 *image_data = NULL;
     if (settings.cube_logo != NULL) {
         image_data = load_logo_texture(settings.cube_logo);
@@ -553,9 +413,9 @@ int main() {
     set_patch_value(symshdr, syment, symstringdata, "preboot_delay_ms", settings.preboot_delay_ms);
     set_patch_value(symshdr, syment, symstringdata, "postboot_delay_ms", settings.postboot_delay_ms);
 
-    // Copy custom icons into place
-    set_patch_value(symshdr, syment, symstringdata, "assets", (u32)assets);
-    set_patch_value(symshdr, syment, symstringdata, "asset_count", current_asset_index);
+    // // Copy custom icons into place
+    // set_patch_value(symshdr, syment, symstringdata, "assets", (u32)assets);
+    // set_patch_value(symshdr, syment, symstringdata, "asset_count", current_asset_index);
 
     // while(1);
 

@@ -23,185 +23,330 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-// #include <ogc/dvd.h>
+#include <ogc/dvd.h>
 #include <malloc.h>
 #include <string.h>
 #include <gccore.h>
 #include <unistd.h>
-// #include <ogc/lwp_watchdog.h>
-// #include <ogc/machine/processor.h>
-
+#include <ogc/lwp_watchdog.h>
+#include <ogc/machine/processor.h>
 #include "gc_dvd.h"
 #include "reloc.h"
 
+#define DVD_DI_MODE (1 << 2)
+#define DVD_DI_DMA (1 << 1)
+#define DVD_DI_START (1 << 0)
+
 volatile unsigned long* dvd = (volatile unsigned long*)0xCC006000;
+static GCN_ALIGNED(file_entry_t) entry;
 
-#define DVD_GCODE_FLASH_READ 0xB3000000
+#define DVD_FLIPPY_STATUS_BLOB 0xB4000000
 
-int dvd_flash_read(void* dst, unsigned int len, uint64_t offset)
+int dvd_get_status(firmware_status_blob_t* dst)
 {
-  if(offset>>2 > 0xFFFFFFFF)
-    return -1;
-    
-  if ((((int)dst) & 0xC0000000) == 0x80000000) // cached?
-    dvd[0] = 0x2E;
-  dvd[1] = 0;
-  dvd[2] = DVD_GCODE_FLASH_READ;
-  dvd[3] = offset >> 2;
-  dvd[4] = len;
-  dvd[5] = (unsigned long)dst & 0x1FFFFFFF;
-  dvd[6] = len;
-  dvd[7] = 3; // enable reading!
-  DCInvalidateRange(dst, len);
-  while (dvd[7] & 1);
+    u32 status_size = sizeof(firmware_status_blob_t);
 
-  if (dvd[0] & 0x4)
-    return 1;
-  return 0;
+    dvd[0] = 0x2E;
+    dvd[1] = 0;
+    dvd[2] = DVD_FLIPPY_STATUS_BLOB;
+    dvd[3] = 0;
+    dvd[4] = 0;
+    dvd[5] = (u32)dst & 0x1FFFFFFF;
+    dvd[6] = status_size;
+    dvd[7] = (DVD_DI_DMA|DVD_DI_START); // enable reading!
+    DCInvalidateRange(dst, status_size);
+    while (dvd[7] & 1);
+
+    dst->status_text[63] = 0;
+    dst->status_sub[63] = 0;
+    if (dvd[0] & 0x4)
+        return 1;
+    return 0;
+}
+
+int dvd_cover_status() {
+    return (dvd[1] & 1); // 0: cover closed, 1: cover opened
+}
+
+int dvd_transaction_wait() {
+    return 0;
+}
+
+void dvd_custom_bypass()
+{
+    dvd[0] = 0x2E;
+    dvd[1] = 0;
+    dvd[2] = 0xDC000000;
+    dvd[3] = 0;
+    dvd[4] = 0;
+    dvd[5] = 0;
+    dvd[6] = 0;
+    dvd[7] = 1; // IMM
+    while (dvd[7] & 1)
+        ;
 }
 
 #define DVD_FLIPPY_FILEAPI_BASE 0xB5000000
 
-// IPC_FILE_READ        = 0x08,
-// IPC_FILE_WRITE       = 0x09,
-// TODO: switch this from embedded 4 byte path to a buffer handler
-#define DVD_FLIPPY_OPEN (DVD_FLIPPY_FILEAPI_BASE | 0x0A)
-// IPC_FILE_CLOSE       = 0x0B,
-// IPC_FILE_STAT        = 0x0C,
-// IPC_FILE_SEEK        = 0x0D,
-// IPC_FILE_UNIMP1      = 0x0E,
-// NOTE: must include expected length in request
-#define DVD_FLIPPY_READDIR (DVD_FLIPPY_FILEAPI_BASE | 0x0F)
-
-#define DVD_FLIPPY_READDIR (DVD_FLIPPY_FILEAPI_BASE | 0x0F)
-#define DVD_FLIPPY_READDIR (DVD_FLIPPY_FILEAPI_BASE | 0x0F)
-#define DVD_FLIPPY_READDIR (DVD_FLIPPY_FILEAPI_BASE | 0x0F)
-
-#define DVD_FLIPPY_READDIR (DVD_FLIPPY_FILEAPI_BASE | 0x0F)
-
-
-#define DVD_GCODE_WRITE_SETUP 0xB3000000
-#define DVD_GCODE_WRITEBUFFEREX 0xBC000000
-
-#define DVD_GCODE_BLKSIZE 0x200
-
-#define DVD_DI_MODE  (1<<2)
-#define DVD_DI_DMA   (1<<1)
-#define DVD_DI_START (1<<0)
-
-
-int dvd_custom_open(char *path, uint8_t type, uint8_t flags)
+int dvd_custom_open(ipc_device_type_t device, char *path, uint8_t type, uint8_t flags)
 {
-  __attribute__((aligned(32))) static file_entry_t entry;
-  strncpy(entry.name, path, 256);
-  entry.name[255] = 0;
-  entry.type = type;
-  entry.flags = flags;
+    strncpy(entry.name, path, 256);
+    entry.name[255] = 0;
+    entry.type = type;
+    entry.flags = flags;
 
-  OSReport("Opening: %s\n", entry.name);
+    OSReport("SD Opening: %s\n", entry.name);
 
-  DCFlushRange(&entry, sizeof(file_entry_t));
+    DCFlushRange(&entry, sizeof(file_entry_t));
 
-  dvd[0] = 0x2E;
-  dvd[1] = 0;
-  dvd[2] = DVD_FLIPPY_OPEN;
-  dvd[3] = 0;
-  dvd[4] = sizeof(file_entry_t);
-  dvd[5] = (u32)&entry & 0x1FFFFFFF;
-  dvd[6] = sizeof(file_entry_t);
-  dvd[7] = (DVD_DI_MODE|DVD_DI_DMA|DVD_DI_START);
-  while ((dvd[7] & 1) > 0) ;
+    dvd[0] = 0x2E;
+    dvd[1] = 0;
+    dvd[2] = DVD_FLIPPY_FILEAPI_BASE | IPC_FILE_OPEN | device;
+    dvd[3] = 0;
+    dvd[4] = sizeof(file_entry_t);
+    dvd[5] = (u32)&entry & 0x1FFFFFFF;
+    dvd[6] = sizeof(file_entry_t);
+    dvd[7] = (DVD_DI_MODE|DVD_DI_DMA|DVD_DI_START);
+    while (dvd[7] & 1) {
+        if (ticks_to_millisecs(gettime()) % 1000 == 0)
+            OSReport("Still reading: %u/%u\n", (u32)dvd[6], sizeof(file_entry_t));
+    }
 
-  if (dvd[0] & 0x4)
-    return 1;
-  return 0;
+    if (dvd[0] & 0x4)
+        return 1;
+    return 0;
 }
 
-int dvd_custom_readdir(file_entry_t* target)
+int dvd_custom_unlink(ipc_device_type_t device, char *path)
 {
-  __attribute__((aligned(32))) static file_entry_t dst;
-  dvd[0] = 0x2E;
-  dvd[1] = 0;
-  dvd[2] = DVD_FLIPPY_READDIR;
-  dvd[3] = 0;
-  dvd[4] = 0;
-  dvd[5] = (u32)&dst;
-  dvd[6] = sizeof(file_entry_t);
-  dvd[7] = 3; // enable reading!
-  DCInvalidateRange((u8*)&dst, sizeof(file_entry_t));
-  while (dvd[7] & 1);
+    strcpy(entry.name, path);
 
-  if (dvd[0] & 0x4) 
-    return 1;
+    OSReport("DVD Unlinking: %s\n", entry.name);
 
-  memcpy(target, (u8*)&dst, sizeof(file_entry_t));
-  return 0;
+    DCFlushRange(&entry, sizeof(file_entry_t));
+
+    dvd[0] = 0x2E;
+    dvd[1] = 0;
+    dvd[2] = DVD_FLIPPY_FILEAPI_BASE | IPC_FILE_UNLINK | device;
+    dvd[3] = 0;
+    dvd[4] = sizeof(file_entry_t);
+    dvd[5] = (u32)&entry & 0x1FFFFFFF;
+    dvd[6] = sizeof(file_entry_t);
+    dvd[7] = (DVD_DI_MODE | DVD_DI_DMA | DVD_DI_START);
+    while (dvd[7] & 1)
+    {
+        if (ticks_to_millisecs(gettime()) % 1000 == 0)
+            OSReport("Still reading: %u/%u\n", (u32)dvd[6], sizeof(file_entry_t));
+    }
+
+    if (dvd[0] & 0x4)
+        return 1;
+    return 0;
+}
+
+int dvd_custom_readdir(ipc_device_type_t device, file_entry_t *target)
+{
+    dvd[0] = 0x2E;
+    dvd[1] = 0;
+    dvd[2] = DVD_FLIPPY_FILEAPI_BASE | IPC_FILE_READDIR | device;
+    dvd[3] = 0;
+    dvd[4] = 0;
+    dvd[5] = (u32)&entry & 0x1FFFFFFF;
+    dvd[6] = sizeof(file_entry_t);
+    dvd[7] = 3; // enable reading!
+    DCInvalidateRange((u8 *)&entry, sizeof(file_entry_t));
+    while (dvd[7] & 1)
+        ;
+
+    if (dvd[0] & 0x4) 
+        return 1;
+
+    memcpy(target, &entry, sizeof(file_entry_t));
+    return 0;
+}
+
+int dvd_custom_status(ipc_device_type_t device, file_status_t *target)
+{
+    GCN_ALIGNED(file_status_t) dst;
+
+    dvd[0] = 0x2E;
+    dvd[1] = 0;
+    dvd[2] = DVD_FLIPPY_FILEAPI_BASE | IPC_READ_STATUS | device;
+    dvd[3] = 0;
+    dvd[4] = 0;
+    dvd[5] = (u32)&dst & 0x1FFFFFFF;
+    dvd[6] = sizeof(file_status_t);
+    dvd[7] = 3; // enable reading!
+    DCInvalidateRange((u8*)&dst, sizeof(file_status_t));
+
+    while (dvd[7] & 1)
+        ;
+
+    if (dvd[0] & 0x4)
+        return 1;
+
+    memcpy(target, &dst, sizeof(file_status_t));
+    return 0;
+}
+
+void dvd_custom_close(ipc_device_type_t device)
+{
+    dvd[0] = 0x2E;
+    dvd[1] = 0;
+    dvd[2] = DVD_FLIPPY_FILEAPI_BASE | IPC_FILE_CLOSE | device;
+    dvd[3] = 0;
+    dvd[4] = 0;
+    dvd[5] = 0;
+    dvd[6] = 0;
+    dvd[7] = 1; // IMM
+    while (dvd[7] & 1)
+        ;
+}
+
+void dvd_custom_set_active(ipc_device_type_t device)
+{
+    dvd[0] = 0x2E;
+    dvd[1] = 0;
+    dvd[2] = DVD_FLIPPY_FILEAPI_BASE | IPC_SET_ACTIVE | device;
+    dvd[3] = 0;
+    dvd[4] = 0;
+    dvd[5] = 0;
+    dvd[6] = 0;
+    dvd[7] = 1; // IMM
+    while (dvd[7] & 1)
+        ;
 }
 
 int dvd_read_id()
 {
-  dvd[0] = 0x2E;
-  dvd[1] = 0;
-  dvd[2] = 0xA8000040;
-  dvd[3] = 0;
-  dvd[4] = 0x20;
-  dvd[5] = 0;
-  dvd[6] = 0x20;
-  dvd[7] = 3; // enable reading!
-  while (dvd[7] & 1);
-  if (dvd[0] & 0x4)
-    return 1;
-  return 0;
+    dvd[0] = 0x2E;
+    dvd[1] = 0;
+    dvd[2] = 0xA8000040;
+    dvd[3] = 0;
+    dvd[4] = 0x20;
+    dvd[5] = 0;
+    dvd[6] = 0x20;
+    dvd[7] = 3; // enable reading!
+    while (dvd[7] & 1)
+        ;
+    if (dvd[0] & 0x4)
+        return 1;
+    return 0;
 }
 
 unsigned int dvd_get_error(void)
 {
-  dvd[2] = 0xE0000000;
-  dvd[8] = 0;
-  dvd[7] = 1; // IMM
-  while (dvd[7] & 1);
-  return dvd[8];
+    dvd[2] = 0xE0000000;
+    dvd[8] = 0;
+    dvd[7] = 1; // IMM
+    while (dvd[7] & 1);
+    return dvd[8];
 }
-
 
 void dvd_motor_off()
 {
-  dvd[0] = 0x2E;
-  dvd[1] = 0;
-  dvd[2] = 0xe3000000;
-  dvd[3] = 0;
-  dvd[4] = 0;
-  dvd[5] = 0;
-  dvd[6] = 0;
-  dvd[7] = 1; // IMM
-  while (dvd[7] & 1);
+    dvd[0] = 0x2E;
+    dvd[1] = 0;
+    dvd[2] = 0xe3000000;
+    dvd[3] = 0;
+    dvd[4] = 0;
+    dvd[5] = 0;
+    dvd[6] = 0;
+    dvd[7] = 1; // IMM
+    while (dvd[7] & 1);
+}
+
+void dvd_bootloader_boot()
+{
+    dvd[0] = 0x2E;
+    dvd[1] = 0;
+    dvd[2] = 0x12000000;
+    dvd[3] = 0xabadbeef;
+    dvd[4] = 0xcafe6969;
+    dvd[5] = 0;
+    dvd[6] = 0;
+    dvd[7] = 1; // IMM
+    while (dvd[7] & 1)
+        ;
+}
+
+void dvd_bootloader_update()
+{
+    dvd[0] = 0x2E;
+    dvd[1] = 0;
+    dvd[2] = 0x12000000;
+    dvd[3] = 0xabadbeef;
+    dvd[4] = 0xdabfed69;
+    dvd[5] = 0;
+    dvd[6] = 0;
+    dvd[7] = 1; // IMM
+    while (dvd[7] & 1)
+        ;
+}
+
+void dvd_bootloader_noupdate()
+{
+    dvd[0] = 0x2E;
+    dvd[1] = 0;
+    dvd[2] = 0x12000000;
+    dvd[3] = 0xabadbeef;
+    dvd[4] = 0xdecaf420;
+    dvd[5] = 0;
+    dvd[6] = 0;
+    dvd[7] = 1; // IMM
+    while (dvd[7] & 1)
+        ;
+}
+
+static GCN_ALIGNED(dvd_info) info = {0};
+dvd_info *dvd_inquiry()
+{
+    dvd[0] = 0x2E;
+    dvd[1] = 0;
+    dvd[2] = 0x12000000;
+    dvd[3] = 0;
+    dvd[4] = 0;
+    dvd[5] = ((u32)&info) & 0x1FFFFFFF;
+    dvd[6] = sizeof(dvd_info);
+    dvd[7] = 3; // enable reading!
+    DCInvalidateRange((u8*)&info, sizeof(dvd_info));
+    while (dvd[7] & 1);
+
+    return &info;
+}
+
+void dvd_break() {
+    dvd[0] = 1;
+    // while((dvd[0] & 1) == 1);
 }
 
 /* 
-DVD_LowRead64(void* dst, unsigned int len, uint64_t offset)
-  Read Raw, needs to be on sector boundaries
-  Has 8,796,093,020,160 byte limit (8 TeraBytes)
-  Synchronous function.
-    return -1 if offset is out of range
+dvd_read(void* dst, unsigned int len, uint64_t offset)
+    Read Raw, needs to be on sector boundaries
+    Has 8,796,093,020,160 byte limit (8 TeraBytes)
+    Synchronous function.
+        return -1 if offset is out of range
 */
-int DVD_LowRead64(void* dst, unsigned int len, uint64_t offset)
+int dvd_read(void* dst, unsigned int len, uint64_t offset)
 {
-  if(offset>>2 > 0xFFFFFFFF)
-    return -1;
-    
-  if ((((int)dst) & 0xC0000000) == 0x80000000) // cached?
-    dvd[0] = 0x2E;
-  dvd[1] = 0;
-  dvd[2] = DVD_READ_NORMAL;
-  dvd[3] = offset >> 2;
-  dvd[4] = len;
-  dvd[5] = (unsigned long)dst & 0x1FFFFFFF;
-  dvd[6] = len;
-  dvd[7] = 3; // enable reading!
-  DCInvalidateRange(dst, len);
-  while (dvd[7] & 1);
+    if(offset>>2 > 0xFFFFFFFF)
+        return -1;
+        
+    if ((((int)dst) & 0xC0000000) == 0x80000000) // cached?
+    {
+        dvd[0] = 0x2E;
+    }
+    dvd[1] = 0;
+    dvd[2] = DVD_READ_NORMAL;
+    dvd[3] = offset >> 2;
+    dvd[4] = len;
+    dvd[5] = (u32)dst & 0x1FFFFFFF;
+    dvd[6] = len;
+    dvd[7] = 3; // enable reading!
+    DCInvalidateRange(dst, len);
+    while (dvd[7] & 1);
 
-  if (dvd[0] & 0x4)
-    return 1;
-  return 0;
+    if (dvd[0] & 0x4)
+        return 1;
+    return 0;
 }
