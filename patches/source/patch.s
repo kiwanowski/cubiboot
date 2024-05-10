@@ -3,11 +3,13 @@
 #include "patch_asm.h"
 
 // patch_inst vNTSC_11(_change_background_color) 0x81481cc8 .4byte 0xFFFF00FF
-// patch_inst vNTSC_11(_test_only_a) 0x81301210 li r3, 0
-// patch_inst vNTSC_11(_test_only_b) 0x81307dc8 trap
-patch_inst vNTSC_11(_skip_menu_logo) 0x8130d178 li r3, 5
+// patch_inst vNTSC_11(_test_only_a) 0x81301210 trap
+// patch_inst vNTSC_11(_test_only_b) 0x81336124 b _addr_81336124
+// patch_inst vNTSC_11(_skip_menu_logo) 0x8130d178 li r3, 5
 // patch_inst vNTSC_11(_reduce_heap_size) 0x81307df4 lis r5, -0x7f00 // 0x81100000 -> 0x81000000
 patch_inst vNTSC_11(_reduce_arena_size) 0x8135825c lis r3, -0x7ea0 // 0x81700000 -> 0x81600000
+
+patch_inst vNTSC_11(_patch_thread_init) 0x81301070 bl pre_thread_init
 
 // patch_inst vNTSC_11(_trap_dvd_open) 0x81362678 trap
 // patch_inst vNTSC_11(_trap_dvd_fast_open) 0x81362604 trap

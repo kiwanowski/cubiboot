@@ -13,6 +13,7 @@ char *strncpy (char *dst0, const char *src0, size_t count);
 char *strcpy (char *dst0, const char *src0);
 int strcmp (const char *s1, const char *s2);
 size_t strlen (const char *str);
+char *strtok (register char *__restrict s, register const char *__restrict delim);
 
 typedef int cmp_t(const void *, const void *);
 void qsort (void *a, size_t n, size_t es, cmp_t *cmp);

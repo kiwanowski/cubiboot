@@ -13,3 +13,6 @@ __attribute_reloc__ GXRModeObj *rmode;
 
 // from main
 __attribute_reloc__ state *cube_state;
+
+// from menu
+__attribute_reloc__ u32 (*OSDisableInterrupts)();

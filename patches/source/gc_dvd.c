@@ -31,6 +31,7 @@
 #include <ogc/lwp_watchdog.h>
 #include <ogc/machine/processor.h>
 #include "gc_dvd.h"
+#include "dolphin_os.h"
 #include "reloc.h"
 
 #define DVD_DI_MODE (1 << 2)
@@ -111,6 +112,32 @@ int dvd_custom_open(ipc_device_type_t device, char *path, uint8_t type, uint8_t 
         if (ticks_to_millisecs(gettime()) % 1000 == 0)
             OSReport("Still reading: %u/%u\n", (u32)dvd[6], sizeof(file_entry_t));
     }
+
+    if (dvd[0] & 0x4)
+        return 1;
+    return 0;
+}
+
+int dvd_threaded_custom_open(ipc_device_type_t device, char *path, uint8_t type, uint8_t flags)
+{
+    strncpy(entry.name, path, 256);
+    entry.name[255] = 0;
+    entry.type = type;
+    entry.flags = flags;
+
+    OSReport("SD Opening: %s\n", entry.name);
+
+    DCFlushRange(&entry, sizeof(file_entry_t));
+
+    dvd[0] = 0x2E;
+    dvd[1] = 0;
+    dvd[2] = DVD_FLIPPY_FILEAPI_BASE | IPC_FILE_OPEN | device;
+    dvd[3] = 0;
+    dvd[4] = sizeof(file_entry_t);
+    dvd[5] = (u32)&entry & 0x1FFFFFFF;
+    dvd[6] = sizeof(file_entry_t);
+    dvd[7] = (DVD_DI_MODE|DVD_DI_DMA|DVD_DI_START);
+    while (dvd[7] & 1) OSYieldThread();
 
     if (dvd[0] & 0x4)
         return 1;
@@ -345,6 +372,30 @@ int dvd_read(void* dst, unsigned int len, uint64_t offset)
     dvd[7] = 3; // enable reading!
     DCInvalidateRange(dst, len);
     while (dvd[7] & 1);
+
+    if (dvd[0] & 0x4)
+        return 1;
+    return 0;
+}
+
+int dvd_threaded_read(void* dst, unsigned int len, uint64_t offset)
+{
+    if(offset>>2 > 0xFFFFFFFF)
+        return -1;
+        
+    if ((((int)dst) & 0xC0000000) == 0x80000000) // cached?
+    {
+        dvd[0] = 0x2E;
+    }
+    dvd[1] = 0;
+    dvd[2] = DVD_READ_NORMAL;
+    dvd[3] = offset >> 2;
+    dvd[4] = len;
+    dvd[5] = (u32)dst & 0x1FFFFFFF;
+    dvd[6] = len;
+    dvd[7] = 3; // enable reading!
+    DCInvalidateRange(dst, len);
+    while (dvd[7] & 1) OSYieldThread();
 
     if (dvd[0] & 0x4)
         return 1;

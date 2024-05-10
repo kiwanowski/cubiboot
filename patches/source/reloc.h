@@ -14,3 +14,6 @@ extern GXRModeObj *rmode;
 
 // from main
 extern state *cube_state;
+
+// from menu
+extern u32 (*OSDisableInterrupts)();

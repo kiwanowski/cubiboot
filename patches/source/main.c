@@ -52,7 +52,6 @@ __attribute_data__ u64 completed_time = 0;
 
 // used to start game
 __attribute_reloc__ u32 (*PADSync)();
-__attribute_reloc__ u32 (*OSDisableInterrupts)();
 __attribute_reloc__ void (*__OSStopAudioSystem)();
 __attribute_reloc__ void (*run)(register void* entry_point, register u32 clear_start, register u32 clear_size);
 
@@ -248,6 +247,12 @@ __attribute_used__ void mod_cube_anim() {
     }
 }
 
+__attribute_used__ void pre_thread_init() {
+    void (*thread_init)() = (void*)0x8131bc18;
+    thread_init();
+    start_file_enum();
+}
+
 __attribute_used__ void pre_menu_init(int unk) {
     menu_init(unk);
 
@@ -314,9 +319,6 @@ __attribute_used__ void pre_main() {
     OSReport("LOADCMD %x, %x, %x, %x\n", prog_entrypoint, prog_dst, prog_src, prog_len);
     memmove((void*)prog_dst, (void*)prog_src, prog_len);
 
-    file_enum_worker();
-    while(1);
-
     main();
 
     __builtin_unreachable();
@@ -326,35 +328,6 @@ __attribute_used__ u32 get_tvmode() {
     return rmode->viTVMode;
 }
 
-// from https://github.com/zeldaret/tp/blob/e1147cf047a525242178bd0ec39c8ed88a2633f1/include/dolphin/arq.h#L12-L37
-typedef void (*ARQCallback)(u32 request_address);
-
-typedef enum _ARamType {
-    ARAM_DIR_MRAM_TO_ARAM,
-    ARAM_DIR_ARAM_TO_MRAM,
-} ARamType;
-
-typedef enum _ArqPriotity {
-    ARQ_PRIORITY_LOW,
-    ARQ_PRIORITY_HIGH,
-} ArqPriotity;
-
-typedef struct ARQRequest {
-    struct ARQRequest* next;
-    u32 owner;
-    u32 type;
-    u32 priority;
-    u32 source;
-    u32 destination;
-    u32 length;
-    ARQCallback callback;
-} ARQRequest;
-
-void aram_done(u32 request_address) {
-    OSReport("Copy Done\n");
-}
-
-__attribute_data__ ARQRequest arq_request;
 __attribute_data__ int frame_count = 0;
 __attribute_used__ u32 bs2tick() {
     // TODO: move this check to PADRead in main loop
@@ -381,9 +354,6 @@ __attribute_used__ u32 bs2tick() {
     if (!completed_time && cube_state->cube_anim_done) {
         OSReport("FINISHED (%d)\n", frame_count);
         completed_time = gettime();
-
-        // void (*ARQPostRequest)(ARQRequest *task, u32 owner, u32 type, u32 priority, u32 source, u32 dest, u32 length, ARQCallback callback) = (void*)0x8136ab80;
-        // ARQPostRequest(&arq_request, 0, ARAM_DIR_MRAM_TO_ARAM, ARQ_PRIORITY_LOW, (u32)0x80300000, 0x0200000, (14 * 1024 * 1024), &aram_done);
     }
 
     // this helps the start menu show correctly
@@ -403,9 +373,9 @@ __attribute_used__ u32 bs2tick() {
         return STATE_START_GAME;
     }
 
-    if (TEST_ONLY_skip_animation) {
-        return STATE_COVER_OPEN;
-    }
+    // if (TEST_ONLY_skip_animation) {
+    //     return STATE_COVER_OPEN;
+    // }
 
     // TODO: allow the user to decide if they want to logo to play
     // return STATE_COVER_OPEN;

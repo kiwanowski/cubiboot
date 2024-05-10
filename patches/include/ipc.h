@@ -1,7 +1,5 @@
 #pragma once
 #include <stdint.h>
-#include <stddef.h>
-#include <gctypes.h>
 
 #define GCN_ALIGNED(type) type __attribute__((aligned(32)))
 
@@ -11,6 +9,19 @@
 
 #define IPC_MAGIC 0xAA55F641
 #pragma pack(push,1)
+
+#define IPC_READ_STATUS_RESPONSE_LEN    sizeof(file_status_t)
+#define IPC_SET_ACTIVE_RESPONSE_LEN     0
+#define IPC_FILE_READ_RESPONSE_LEN      read_len
+#define IPC_FILE_WRITE_RESPONSE_LEN     0
+#define IPC_FILE_OPEN_RESPONSE_LEN      0
+#define IPC_FILE_CLOSE_RESPONSE_LEN     0
+#define IPC_FILE_STAT_RESPONSE_LEN      static_assert(0, "STAT format not yet defined");
+#define IPC_FILE_SEEK_RESPONSE_LEN      0
+#define IPC_FILE_UNLINK_RESPONSE_LEN    0
+#define IPC_FILE_READDIR_RESPONSE_LEN   sizeof(file_entry_t)
+
+#define IPC_RESERVED0_SIZE 180
 
 typedef enum {
     IPC_READ_STATUS        = 0x00,
@@ -24,6 +35,11 @@ typedef enum {
     IPC_FILE_SEEK          = 0x0D,
     IPC_FILE_UNLINK        = 0x0E,
     IPC_FILE_READDIR       = 0x0F,
+
+    IPC_RESERVED0          = 0x10,
+    IPC_RESERVED1          = 0x11,
+    IPC_RESERVED2          = 0x12,
+    IPC_RESERVED3          = 0x13,
 
     IPC_CMD_MAX            = 0x1F
 } ipc_command_type_t;
@@ -89,27 +105,6 @@ typedef struct
     file_entry_t file;
 } ipc_req_unlink_t;
 
-typedef struct {
-    ipc_req_header_t hdr;
-} ipc_req_read_t;
-
-typedef struct {
-    ipc_req_header_t hdr;
-} ipc_req_readdir_t;
-
-typedef struct{
-    ipc_req_header_t hdr;
-} ipc_req_status_t;
-
-typedef struct {
-    ipc_req_header_t hdr;
-} ipc_req_seek_t;
-
-typedef struct
-{
-    ipc_req_header_t hdr;
-} ipc_req_close_t;
-
 enum file_entry_type_enum {
     FILE_ENTRY_TYPE_FILE = 0,
     FILE_ENTRY_TYPE_DIR = 1,
@@ -117,8 +112,7 @@ enum file_entry_type_enum {
     FILE_ENTRY_TYPE_MAX = 0xFF
 };
 
-
-static const size_t ipc_payloadlen[IPC_CMD_MAX+1] = {
+static const size_t ipc_payloadlen[IPC_CMD_MAX] = {
     0, 0, 0, 0, 0, 0, 0, 0, //CMD 0-7
     0, //FILE_READ
     0, //FILE_WRITE
@@ -128,6 +122,8 @@ static const size_t ipc_payloadlen[IPC_CMD_MAX+1] = {
     0, //FILE_SEEK
     sizeof(file_entry_t), //FILE_UNLINK
     0, //READDIR
+
+    IPC_RESERVED0_SIZE, //RESERVED0
 };
 
 #pragma pack(pop)

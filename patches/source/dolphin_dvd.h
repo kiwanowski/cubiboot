@@ -52,7 +52,7 @@ typedef struct _FSTEntry {
 } FSTEntry;
 
 void DVDInit(void);
-DiskHeader *__DVDFSInit(void);
+// DiskHeader *__DVDFSInit(void);
 BOOL DVD_CheckDisk(void);
 BOOL DVDOpen(const char* filename, dvdfileinfo* fileinfo);
 BOOL DVDFastOpen(s32, dvdfileinfo*);

@@ -60,6 +60,7 @@ void dvd_bootloader_noupdate();
 int dvd_cover_status();
 
 int dvd_custom_open(ipc_device_type_t device, char *path, uint8_t type, uint8_t flags);
+int dvd_threaded_custom_open(ipc_device_type_t device, char *path, uint8_t type, uint8_t flags);
 int dvd_custom_unlink(ipc_device_type_t device, char *path);
 int dvd_custom_readdir(ipc_device_type_t device, file_entry_t *target);
 int dvd_custom_status(ipc_device_type_t device, file_status_t *target);
@@ -72,6 +73,7 @@ void dvd_motor_off();
 dvd_info *dvd_inquiry();
 unsigned int dvd_get_error(void);
 int dvd_read(void* dst, unsigned int len, uint64_t offset);
+int dvd_threaded_read(void* dst, unsigned int len, uint64_t offset);
 int dvd_read_id();
 int dvd_transaction_wait();
 

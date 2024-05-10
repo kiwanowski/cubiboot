@@ -1,1 +1,2 @@
-void file_enum_worker();
+void start_file_enum();
+void start_main_loop();

@@ -1,6 +1,7 @@
 #include "dolphin_dvd.h"
 
-#include <assert.h>
+#define assert(...)
+// #include <assert.h>
 #include <malloc.h>
 #include <math.h>
 #include <string.h>
@@ -13,10 +14,10 @@
 #include <ogc/lwp.h>
 #include <ogc/system.h>
 
-#include "print.h"
+#include "reloc.h"
 #include "gc_dvd.h"
 
-// #define DVD_FS_DUMP 1
+#define DVD_FS_DUMP 1
 
 #define GET_OFFSET(o) ((u32)((o[0] << 16) | (o[1] << 8) | o[2]))
 
@@ -28,15 +29,12 @@
 #define OSRoundUp32B(x) (((u32) (x) + 32 - 1) & ~(32 - 1))
 
 // mostly from https://github.com/PsiLupan/FRAY/blob/7fd533b0aa1274a2bd01e060b1547386b30c3f26/src/ogcext/dvd.c#L229
-static dvdcbcallback cb = NULL; //r13_43E4
-static u32 status = 0; //r13_43E8
 static u32 total_entries = 0; //r13_441C
 static char* string_table = NULL; //r13_4420
 static FSTEntry* entry_table = NULL; //r13_4424
 static u32* start_memory = NULL; //r13_4428
-static lwpq_t dvd_wait_queue;
 
-static s8* fst = NULL;
+// static s8* fst = NULL;
 
 static __attribute__((aligned(32))) DiskHeader header;
 DiskHeader *__DVDFSInit(void)
@@ -48,22 +46,22 @@ DiskHeader *__DVDFSInit(void)
 
     start_memory = (u32*)(SYS_BASE_CACHED);
 
-    iprintf("BEFORE BAD READ, %p\n", &header);
+    OSReport("BEFORE BAD READ, %p\n", &header);
     dvd_read(&header, sizeof(DiskHeader), 0); //Read in the disc header
 
     if (header.DVDMagicWord != 0xC2339F3D) {
         //We'll do some error handling for this later
-        iprintf("ERROR ERROR! MAGIC IS BAD, %08x\n", header.DVDMagicWord);
+        OSReport("ERROR ERROR! MAGIC IS BAD, %08x\n", header.DVDMagicWord);
         // TODO: this should prompt a failure later on
         return NULL;
     }
 
-    iprintf("FSTOffset = 0x%08x\n", header.FSTOffset);
-    iprintf("FSTSize = 0x%08x\n", header.FSTSize);
+    OSReport("FSTOffset = 0x%08x\n", header.FSTOffset);
+    OSReport("FSTSize = 0x%08x\n", header.FSTSize);
 
     // TODO: use apploader based FST from lowmem
     // static struct dolphin_lowmem *lowmem = (struct dolphin_lowmem *)0x80000000;
-
+#if 0
     if (fst != NULL) {
         free(fst);
     }
@@ -90,7 +88,7 @@ DiskHeader *__DVDFSInit(void)
     total_entries = entry_table[0].len;
     string_table = (char*)&(entry_table[total_entries]);
 
-    iprintf("FST contains %u\n", total_entries);
+    OSReport("FST contains %u\n", total_entries);
 
 #ifdef DVD_FS_DUMP
     FSTEntry* p = entry_table;
@@ -98,44 +96,13 @@ DiskHeader *__DVDFSInit(void)
         u32 string_offset = GET_OFFSET(p[i].offset);
         char *string = (char*)((u32)string_table + string_offset);
         char type = entry_table[i].filetype == T_FILE ? 'F' : 'D';
-        iprintf("[%c] (0x%08x) entry: %s\n", type, FILE_POSITION(i), string);
+        OSReport("[%c] (0x%08x) entry: %s\n", type, FILE_POSITION(i), string);
     }
 #endif
 
+#endif
+
     return &header;
-}
-
-void DVDInit(void)
-{
-    DVD_Init();
-    DVD_Mount();
-
-    __DVDFSInit();
-    LWP_InitQueue(&dvd_wait_queue);
-}
-
-BOOL DVD_CheckDisk(void)
-{
-    s32 status = DVD_GetDriveStatus();
-
-    switch (status) {
-        case DVD_STATE_BUSY:
-        case DVD_STATE_IGNORED:
-        case DVD_STATE_CANCELED:
-        case DVD_STATE_WAITING:
-            return TRUE;
-
-        case DVD_STATE_FATAL_ERROR:
-        case DVD_STATE_RETRY:
-        case DVD_STATE_MOTOR_STOPPED:
-        case DVD_STATE_COVER_CLOSED:
-        case DVD_STATE_COVER_OPEN:
-        case DVD_STATE_NO_DISK:
-        case DVD_STATE_WRONG_DISK:
-            return FALSE;
-    }
-
-    return FALSE;
 }
 
 BOOL DVDFastOpen(s32 entrynum, dvdfileinfo* fileinfo)
@@ -159,7 +126,7 @@ BOOL DVDOpen(const char* fileName, dvdfileinfo* fileInfo) {
     s32 entry = DVDConvertPathToEntrynum((char*)fileName);
 
     if (0 > entry) {
-        iprintf("Warning: DVDOpen(): file '%s' was not found under %d.\n", fileName, entry);
+        OSReport("Warning: DVDOpen(): file '%s' was not found under %d.\n", fileName, entry);
         return FALSE;
     }
 
@@ -172,120 +139,6 @@ BOOL DVDOpen(const char* fileName, dvdfileinfo* fileInfo) {
     fileInfo->cb = (dvdcallback)NULL;
     fileInfo->block.state = DVD_STATE_END;
 
-    return TRUE;
-}
-
-static void cbForCancelAsync(s32 result, dvdcmdblk* cmd)
-{
-    LWP_ThreadBroadcast(dvd_wait_queue);
-}
-
-BOOL DVDCancelAsync(dvdcmdblk* cmd, dvdcbcallback callback)
-{
-    u32 intr = IRQ_Disable();
-    switch (cmd->state) {
-    case DVD_STATE_BUSY: {
-
-    } break;
-
-    case DVD_STATE_WAITING: {
-        if (cmd->cb != NULL) {
-            (*cmd->cb)(0, cmd);
-        }
-    } break;
-
-    case 3: {
-        switch (cmd->cmd) {
-        case 4:
-        case 5:
-        case 13:
-        case 15: {
-            if (callback != NULL) {
-                (*callback)(0, cmd);
-            }
-        }
-            if (status != 0) {
-                IRQ_Restore(intr);
-                return 0;
-            }
-            cb = callback;
-            status = 1;
-            break;
-        }
-    } break;
-
-    case DVD_STATE_NO_DISK:
-    case DVD_STATE_COVER_OPEN:
-    case DVD_STATE_WRONG_DISK:
-    case DVD_STATE_MOTOR_STOPPED:
-    case DVD_STATE_RETRY: {
-        switch (cmd->state) {
-        case 4:
-            status = 3;
-            break;
-
-        case 5:
-            status = 4;
-            break;
-
-        case 6:
-            status = 1;
-            break;
-
-        case 7:
-            status = 7;
-            break;
-
-        case 11:
-            status = 1;
-            break;
-        }
-        cmd->state = 10;
-        if (cmd->cb != NULL) {
-            (*cmd->cb)(DVD_ERROR_CANCELED, cmd);
-        }
-        if (callback != NULL) {
-            (*callback)(0, cmd);
-        }
-    } break;
-
-    case DVD_STATE_FATAL_ERROR:
-    case DVD_STATE_END:
-    case DVD_STATE_CANCELED: {
-        if (callback != NULL) {
-            (*callback)(DVD_ERROR_OK, cmd);
-        }
-    } break;
-    }
-    IRQ_Restore(intr);
-    return TRUE;
-}
-
-s32 DVDCancel(dvdcmdblk* cmd)
-{
-    if (DVDCancelAsync(cmd, cbForCancelAsync) == FALSE) {
-        return -1;
-    } else {
-        u32 intr = IRQ_Disable();
-        while (true) {
-            s32 state = cmd->state;
-            if (1 >= (state + 1) || state == DVD_STATE_CANCELED || state == DVD_STATE_COVER_CLOSED) {
-                break;
-            }
-            u32 command = cmd->cmd;
-            if (1 >= (command - 4) || command == 13 || command == 15) {
-                break;
-            }
-            LWP_ThreadSleep(dvd_wait_queue);
-        }
-        IRQ_Restore(intr);
-        return 0;
-    }
-}
-
-BOOL DVDClose(dvdfileinfo* fileinfo)
-{
-    DVD_CancelAllAsync(fileinfo->block.cb);
     return TRUE;
 }
 

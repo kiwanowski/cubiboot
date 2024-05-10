@@ -40,7 +40,6 @@
 #include "bnr.h"
 
 #include "gc_dvd.h"
-#include "dolphin_dvd.h"
 
 typedef struct {
     struct gcm_disk_header header;
@@ -199,8 +198,8 @@ int main() {
         // GXRModeObj *temp = VIDEO_GetPreferredMode(NULL);
         // settings.progressive_enabled = (temp->viTVMode & 3) == VI_PROGRESSIVE ? 1 : 0;
         // iprintf("Detected progressive: %d\n", settings.progressive_enabled);
-        settings.progressive_enabled = 1;
-        // settings.progressive_enabled = 0;
+        // settings.progressive_enabled = 1;
+        settings.progressive_enabled = 0;
 
         // preboot delay
         settings.preboot_delay_ms = 0;
