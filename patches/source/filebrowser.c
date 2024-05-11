@@ -31,6 +31,7 @@ typedef struct {
     u32 aram_bnr_offset;
     char iso_name[64];
     char iso_path[128];
+    ARQRequest aram_req;
 } game_backing_entry_t;
 
 int cmp_iso_path(const void* ptr_a, const void* ptr_b){
@@ -46,6 +47,31 @@ game_backing_entry_t *game_backing_list[1000];
 // draw variables
 int number_of_lines = 0;
 
+// ===============================================================================
+
+#define MAX_ANIMS 6
+
+typedef struct {
+    int idk;
+} line_anim_t;
+
+typedef struct {
+    line_anim_t items[MAX_ANIMS];
+    int front;
+    int rear;
+    int count;
+} anim_list_t;
+
+typedef struct {
+    anim_list_t anims;
+    int relative_index; // relative to top
+} line_backing_t;
+
+line_backing_t browser_lines[10];
+
+// ===============================================================================
+
+// start code
 void weird_panic() {
     OSReport("PANIC: unknown\n");
     while(1);
@@ -165,7 +191,9 @@ void *file_enum_worker(void* param) {
     OSReport("FIRST File enum:\n");
     int number_of_entries = early_file_enum();
     number_of_lines = (number_of_entries + 7) >> 3;
-    OSReport("Currnet lines = %d\n", number_of_lines);
+    OSReport("Current lines = %d\n", number_of_lines);
+
+    OSReport("Test? %p\n", browser_lines);
 
     OSReport("SECOND File enum:\n");
     u64 start_time = gettime();
@@ -214,7 +242,7 @@ void *file_enum_worker(void* param) {
     f32 runtime = (f32)diff_usec(start_time, gettime()) / 1000.0;
     OSReport("Second file enum completed! took=%f (%d)\n", runtime, game_backing_count);
 
-    // OSReport("[DONE] - KILL DOLPHIN NOW\n");
+    OSReport("[DONE] - KILL DOLPHIN NOW\n");
     return NULL;
 }
 
@@ -222,7 +250,8 @@ typedef void* (*OSThreadStartFunction)(void*);
 BOOL (*OSCreateThread)(void *thread, OSThreadStartFunction func, void* param, void* stack, u32 stackSize, s32 priority, u16 attr) = (void*)0x8135f7d4;
 s32 (*OSResumeThread)(void *thread) = (void*)0x8135fb94;
 
-static u8 thread_obj[0x300];
+// match https://github.com/projectPiki/pikmin2/blob/snakecrowstate-work/include/Dolphin/OS/OSThread.h#L55-L74
+static u8 thread_obj[0x310];
 static u8 thread_stack[32 * 1024];
 void start_file_enum() {
     u32 thread_stack_size = sizeof(thread_stack);

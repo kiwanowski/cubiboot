@@ -6,13 +6,15 @@ PHDRS {
     text PT_LOAD;
 }
 
-/* unknown: needed by compiler */
-memset = 0x80000000;
+MEMORY {
+    MRAM (rwx) : ORIGIN = 0x81600000, LENGTH = 1M
+}
 
+/* used by usbgecko */
 EXI = 0xCC006800;
 
 SECTIONS {
-    . = 0x81700000;
+    . = 0x81600000;
 
     .text : {
         *(.text);
