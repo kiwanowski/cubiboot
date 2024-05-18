@@ -29,7 +29,7 @@ const int raw_y_top = 64;
 const int base_y = 118;
 const f32 offset_y = 56;
 
-static f32 get_position_after(line_backing_t *line_backing) {
+f32 get_position_after(line_backing_t *line_backing) {
     anim_list_t *anims = &line_backing->anims;
 
     f32 position_y = line_backing->raw_position_y;
@@ -93,32 +93,22 @@ void grid_add_anim(int line_num, int direction, f32 distance) {
 int grid_dispatch_navigate_up() {
     OSReport("Up pressed %d\n", number_of_lines);
 
-    // check all anims full or empty
-    // calculate final pos after all pending anims would complete
-    // if final pos is within bounds, add anims
+    int max_pending = 0;
+    for (int line_num = 0; line_num < number_of_lines; line_num++) {
+        line_backing_t *line_backing = &browser_lines[line_num];
+        anim_list_t *anims = &line_backing->anims;
+        if (anims->pending_count > max_pending) {
+            max_pending = anims->pending_count;
+        }
 
-    // int count_visible_after = 0;
-    // int max_pending = 0;
-    // for (int line_num = 0; line_num < number_of_lines; line_num++) {
-    //     line_backing_t *line_backing = &browser_lines[line_num];
-    //     anim_list_t *anims = &line_backing->anims;
-    //     if (anims->pending_count > max_pending) {
-    //         max_pending = anims->pending_count;
-    //     }
-
-    //     // no idea why this works
-    //     if (get_position_after(line_backing) + 10 >= DRAW_BOUND_TOP && get_position_after(line_backing) - 10 < DRAW_BOUND_BOTTOM) {
-    //         count_visible_after++;
-    //     }
-    // }
+        if (anims->pending_count > 0 && anims->direction == ANIM_DIRECTION_UP) {
+            OSReport("ERROR: Pending up anims\n");
+            return 1;
+        }
+    }
 
     // if (max_pending == MAX_ANIMS) {
     //     OSReport("ERROR: Max anims exceeded\n");
-    //     return 1;
-    // }
-
-    // if (count_visible_after <= 4) {
-    //     OSReport("ERROR: All visible (count_visible_after=%d)\n", count_visible_after);
     //     return 1;
     // }
 
@@ -170,28 +160,22 @@ int grid_dispatch_navigate_down() {
     // calculate final pos after all pending anims would complete
     // if final pos is within bounds, add anims
 
-    // int count_visible_after = 0;
-    // int max_pending = 0;
-    // for (int line_num = 0; line_num < number_of_lines; line_num++) {
-    //     line_backing_t *line_backing = &browser_lines[line_num];
-    //     anim_list_t *anims = &line_backing->anims;
-    //     if (anims->pending_count > max_pending) {
-    //         max_pending = anims->pending_count;
-    //     }
+    int max_pending = 0;
+    for (int line_num = 0; line_num < number_of_lines; line_num++) {
+        line_backing_t *line_backing = &browser_lines[line_num];
+        anim_list_t *anims = &line_backing->anims;
+        if (anims->pending_count > max_pending) {
+            max_pending = anims->pending_count;
+        }
 
-    //     // no idea why this works
-    //     if (get_position_after(line_backing) + 10 >= DRAW_BOUND_TOP && get_position_after(line_backing) - 10 < DRAW_BOUND_BOTTOM) {
-    //         count_visible_after++;
-    //     }
-    // }
+        if (anims->pending_count > 0 && anims->direction == ANIM_DIRECTION_DOWN) {
+            OSReport("ERROR: Pending down anims\n");
+            return 1;
+        }
+    }
 
     // if (max_pending == MAX_ANIMS) {
     //     OSReport("ERROR: Max anims exceeded\n");
-    //     return 1;
-    // }
-
-    // if (count_visible_after <= 4) {
-    //     OSReport("ERROR: All visible (count_visible_after=%d)\n", count_visible_after);
     //     return 1;
     // }
 
@@ -217,10 +201,6 @@ int grid_dispatch_navigate_down() {
             grid_add_anim(line_num, ANIM_DIRECTION_UP, offset_y);
             // OSReport("Adding anim %d, current=%f sub=%f\n", line_num, position_y, offset_y);
         } else {
-            if (line_num == 0) {
-                OSReport("Current position = %f\n", line_backing->raw_position_y);
-                OSReport("Target position = %f\n", partial_position_y);
-            }
             line_backing->raw_position_y -= offset_y;
         }
 

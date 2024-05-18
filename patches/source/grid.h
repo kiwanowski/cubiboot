@@ -32,6 +32,9 @@ typedef struct {
 extern int number_of_lines;
 extern line_backing_t browser_lines[128];
 
+// helper
+f32 get_position_after(line_backing_t *line_backing);
+
 void grid_setup_func();
 int grid_dispatch_navigate_up();
 int grid_dispatch_navigate_down();

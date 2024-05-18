@@ -11,6 +11,7 @@
 #include "usbgecko.h"
 #include "menu.h"
 #include "grid.h"
+#include "filebrowser.h"
 
 // TODO: this is all zeros except for one BNRDesc, so replace it with a sparse version
 #include "../build/default_opening_bin.h"
@@ -436,7 +437,7 @@ __attribute_used__ void custom_gameselect_menu(u8 broken_alpha_0, u8 alpha_1, u8
                 for (int col = 0; col < 8; col++) {
                     int slot_num = (line_num * 8) + col;
 
-                    bool has_texture = (slot_num < asset_count);
+                    bool has_texture = (slot_num < game_backing_count);
                     bool selected = (slot_num == selected_slot);
 
                     if (selected && pass == 0) continue; // skip selected icon on first pass
@@ -533,6 +534,8 @@ __attribute_used__ void pre_menu_alpha_setup() {
             Jac_PlaySe(SOUND_MENU_ENTER);
             first_transition = false;
         }
+
+        memset((void*)0x80400000, 0, 0x200000); // clear assets
     }
 }
 
@@ -666,10 +669,10 @@ __attribute_used__ s32 handle_gameselect_inputs() {
             if (top_line_num == 0 && (selected_slot - 8) < 0) {
                 OSReport("SKIP MOVE UP: top_line_num = %d\n", top_line_num);
                 Jac_PlaySe(SOUND_CARD_ERROR);
-            } else {
+            } else if (top_line_num != 0) {
                 Jac_PlaySe(SOUND_CARD_MOVE);
                 line_backing_t *line_backing = &browser_lines[selected_slot / 8];
-                if (line_backing->raw_position_y <= DRAW_BOUND_TOP + 56) {
+                if (get_position_after(line_backing) <= DRAW_BOUND_TOP + 56) {
                     if (grid_dispatch_navigate_up() == 0) {
                         selected_slot -= 8;
                         top_line_num--;
