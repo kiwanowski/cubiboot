@@ -10,6 +10,7 @@
 
 #include "usbgecko.h"
 #include "menu.h"
+#include "grid.h"
 
 // TODO: this is all zeros except for one BNRDesc, so replace it with a sparse version
 #include "../build/default_opening_bin.h"
@@ -83,7 +84,7 @@ typedef struct {
 } game_asset;
 
 game_asset *assets;
-__attribute_data__ int asset_count;
+__attribute_data__ int asset_count; // unused
 __attribute_data__ char boot_path[128];
 
 typedef struct {
@@ -92,36 +93,11 @@ typedef struct {
     Mtx m;
 } position_t;
 
-static position_t icons_positions[40];
+static position_t icons_positions[8];
 // static asset_t (*game_assets)[40] = 0x80400000; // needs ~2.5mb
 
-
-// START file browser
-
-// game_item_t game_items[32][8];
-// line_order
-
-// line animation list [8] depth
-// first press -> lines 0, 1, 2, 3, 4 move up 
-
 // Define constants for max dimensions
-#define MAX_LINES 6
-#define MAX_ANIMATIONS_PER_LINE 4
-
-// Define the struct
-typedef struct {
-    bool is_animating;
-    signed char queue_index;
-    unsigned char current_frame;
-    int start_pos;
-    int end_pos;
-} line_anim_t;
-
-// Define the array to hold animations
-line_anim_t line_animation_list[MAX_LINES][MAX_ANIMATIONS_PER_LINE];
-
-// END file browser
-
+void setup_icon_positions();
 
 __attribute__((aligned(4))) static tex_data banner_texture;
 
@@ -266,13 +242,14 @@ __attribute_used__ void custom_gameselect_init() {
 
     // // init anim list
     // ????
+
+    // icon positions
+    setup_icon_positions();
 }
 
 int selected_slot = 0;
 
-__attribute_used__ void draw_save_icon(u32 index, u8 alpha, bool selected, bool has_texture) {
-    position_t *pos = &icons_positions[index];
-
+__attribute_used__ void draw_save_icon(position_t *pos, u32 slot_num, u8 alpha, bool selected, bool has_texture) {
     f32 sc = pos->scale;
     guVector scale = {sc, sc, sc};
 
@@ -372,7 +349,7 @@ __attribute_used__ void draw_info_box(GXColor *color) {
 #define WITH_SPACE 1
 u32 move_frame = 0;
 
-__attribute_used__ void update_icon_positions() {
+void setup_icon_positions() {
 #if defined(WITH_SPACE) && WITH_SPACE
     const int base_x = -208;
 #else
@@ -380,6 +357,26 @@ __attribute_used__ void update_icon_positions() {
 #endif
     const int base_y = 118;
 
+    for (int col = 0; col < 8; col++) {
+        position_t *pos = &icons_positions[col];
+        pos->scale = 1.3;
+        pos->opacity = 1.0;
+
+
+        f32 pos_x = base_x + (col * 56);
+#if defined(WITH_SPACE) && WITH_SPACE
+        if (col >= 4) pos_x += 24; // card spacing
+#endif
+
+        C_MTXIdentity(pos->m);
+        pos->m[0][3] = pos_x;
+        pos->m[1][3] = 0.0;
+        pos->m[2][3] = 1.0;
+    }
+}
+
+#if 0
+{
     for (int row = 0; row < 5; row++) {
         // f32 mod_pos_y = 0;
         f32 mod_opacity = 1.0;
@@ -426,6 +423,7 @@ __attribute_used__ void update_icon_positions() {
 
     anim_step += 0x7; // why is this the const?
 }
+#endif
 
 __attribute_data__ Mtx global_gameselect_matrix;
 __attribute_data__ Mtx global_gameselect_inverse;
@@ -451,20 +449,41 @@ __attribute_used__ void custom_gameselect_menu(u8 broken_alpha_0, u8 alpha_1, u8
     draw_text("cubeboot loader", 20, 20, 4, &white);
 
     // icons
-    for (int pass = 0; pass < 2; pass++) {
-        for (int row = 0; row < 4; row++) {
+    for (int line_num = 0; line_num < number_of_lines; line_num++) {
+        line_backing_t *line_backing = &browser_lines[line_num];
+
+        if (line_backing->raw_position_y >= 0 && line_backing->raw_position_y < SCREEN_BOUND_TOTAL_Y) {
+            f32 real_position_y = SCREEN_BOUND_TOP - line_backing->raw_position_y;
+            // OSReport("line %d: %f\n", line_num, real_position_y);
             for (int col = 0; col < 8; col++) {
-                int slot_num = (row * 8) + col;
+                int slot_num = (line_num * 8) + col;
 
                 bool has_texture = (slot_num < asset_count);
                 bool selected = (slot_num == selected_slot);
 
-                if (selected && pass == 0) continue; // skip selected icon on first pass
-                if (!selected && pass == 1) continue; // skip unselected icons on second pass
-                draw_save_icon(slot_num, alpha_1, selected, has_texture);
+                position_t *pos = &icons_positions[col];
+                pos->opacity = line_backing->transparency;
+                pos->m[1][3] = real_position_y;
+                draw_save_icon(pos, slot_num, alpha_1, selected, has_texture);
             }
         }
     }
+
+
+    // for (int pass = 0; pass < 2; pass++) {
+    //     for (int row = 0; row < 4; row++) {
+    //         for (int col = 0; col < 8; col++) {
+    //             int slot_num = (row * 8) + col;
+
+    //             bool has_texture = (slot_num < asset_count);
+    //             bool selected = (slot_num == selected_slot);
+
+    //             if (selected && pass == 0) continue; // skip selected icon on first pass
+    //             if (!selected && pass == 1) continue; // skip unselected icons on second pass
+    //             draw_save_icon(slot_num, alpha_1, selected, has_texture);
+    //         }
+    //     }
+    // }
 
     // arrows
     fix_gameselect_view();
@@ -551,8 +570,10 @@ __attribute_used__ void mod_gameselect_draw(u8 alpha_0, u8 alpha_1, u8 alpha_2) 
     return;
 }
 
+__attribute_data__ s32 top_line_num = 0;
 __attribute_used__ s32 handle_gameselect_inputs() {
-    update_icon_positions();
+    // update_icon_positions();
+    grid_update_icon_positions();
 
     // TODO: only works with numbers that do not divide into 255
     const u8 transition_step = 14;
@@ -640,12 +661,20 @@ __attribute_used__ s32 handle_gameselect_inputs() {
         }
 
         if (pad_status->analog_down & ANALOG_DOWN) {
-            if (((5 * 8) - selected_slot) <= 8) {
+            if (number_of_lines - top_line_num == 4 && (selected_slot + 8) > (number_of_lines * 8 - 1)) {
+                OSReport("SKIP MOVE DOWN: top_line_num = %d\n", top_line_num);
                 Jac_PlaySe(SOUND_CARD_ERROR);
-            }
-            else {
+            } else {
                 Jac_PlaySe(SOUND_CARD_MOVE);
-                selected_slot += 8;
+                line_backing_t *line_backing = &browser_lines[selected_slot / 8];
+                if (line_backing->raw_position_y >= DRAW_BOUND_BOTTOM - 56) {
+                    if (grid_dispatch_navigate_down() == 0) {
+                        selected_slot += 8;
+                        top_line_num++;
+                    }
+                } else {
+                    selected_slot += 8;
+                }
             }
         }
 

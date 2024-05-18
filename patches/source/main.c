@@ -275,6 +275,9 @@ __attribute_used__ void pre_menu_init(int unk) {
 __attribute_used__ void pre_main() {
     OSReport("RUNNING BEFORE MAIN\n");
 
+    OSReport("efbHeight = %u\n", rmode->efbHeight);
+    OSReport("xfbHeight = %u\n", rmode->xfbHeight);
+
     if (force_progressive) {
         OSReport("Patching video mode to Progressive Scan\n");
         fix_pal_ntsc = rmode->viTVMode >> 2 != VI_NTSC;
@@ -373,9 +376,9 @@ __attribute_used__ u32 bs2tick() {
         return STATE_START_GAME;
     }
 
-    // if (TEST_ONLY_skip_animation) {
-    //     return STATE_COVER_OPEN;
-    // }
+    if (TEST_ONLY_skip_animation) {
+        return STATE_COVER_OPEN;
+    }
 
     // TODO: allow the user to decide if they want to logo to play
     // return STATE_COVER_OPEN;

@@ -12,6 +12,8 @@
 #include "dolphin_dvd.h"
 #include "dolphin_arq.h"
 
+#include "grid.h"
+
 #include "../../cubeboot/include/bnr.h"
 
 #define SD_TARGET_PATH "/"
@@ -46,30 +48,6 @@ game_backing_entry_t *game_backing_list[1000];
 
 // draw variables
 int number_of_lines = 0;
-
-// ===============================================================================
-
-#define MAX_ANIMS 6
-
-typedef struct {
-    int idk;
-} line_anim_t;
-
-typedef struct {
-    line_anim_t items[MAX_ANIMS];
-    int front;
-    int rear;
-    int count;
-} anim_list_t;
-
-typedef struct {
-    anim_list_t anims;
-    int relative_index; // relative to top
-} line_backing_t;
-
-line_backing_t browser_lines[10];
-
-// ===============================================================================
 
 // start code
 void weird_panic() {
@@ -193,7 +171,9 @@ void *file_enum_worker(void* param) {
     number_of_lines = (number_of_entries + 7) >> 3;
     OSReport("Current lines = %d\n", number_of_lines);
 
-    OSReport("Test? %p\n", browser_lines);
+    // test only
+    // number_of_lines = 20;
+    grid_setup_func();
 
     OSReport("SECOND File enum:\n");
     u64 start_time = gettime();
