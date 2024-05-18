@@ -22,7 +22,7 @@ typedef struct {
 
 typedef struct {
     anim_list_t anims;
-    int relative_index; // relative to top (needed??)
+    // int relative_index; // relative to top (needed??)
     f32 raw_position_y;
     f32 transparency;
     bool moving_out;

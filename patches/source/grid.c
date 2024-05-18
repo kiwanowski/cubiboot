@@ -26,6 +26,17 @@ const int raw_y_top = 64;
 const int base_y = 118;
 const f32 offset_y = 56;
 
+static f32 get_position_after(line_backing_t *line_backing) {
+    anim_list_t *anims = &line_backing->anims;
+
+    f32 position_y = line_backing->raw_position_y;
+    if (anims->direction == ANIM_DIRECTION_UP) {
+        return position_y - anims->remaining;
+    } else {
+        return position_y + anims->remaining;
+    }
+}
+
 // other stuff
 void grid_setup_func() {
     OSReport("browser_lines = %p\n", browser_lines);
@@ -34,7 +45,7 @@ void grid_setup_func() {
     // test code
     for (int line_num = 0; line_num < number_of_lines; line_num++) {
         line_backing_t *line_backing = &browser_lines[line_num];
-        line_backing->relative_index = line_num;
+        // line_backing->relative_index = line_num;
  
         int row = line_num;
         f32 raw_pos_y = (row * offset_y);
@@ -43,6 +54,10 @@ void grid_setup_func() {
         if (line_num >= DRAW_TOTAL_ROWS) {
             line_backing->transparency = 0.0;
         }
+
+        anim_list_t *anims = &line_backing->anims;
+        anims->pending_count = 0;
+        anims->remaining = 0;
         // OSReport("Setting line position %d = %f\n", line_num, line_backing->raw_position_y);
     }
 
@@ -86,7 +101,7 @@ int grid_dispatch_navigate_down() {
         }
 
         // no idea why this works
-        if (line_backing->raw_position_y - anims->remaining + 10 >= DRAW_BOUND_TOP && line_backing->raw_position_y - anims->remaining - 10 < DRAW_BOUND_BOTTOM) {
+        if (get_position_after(line_backing) + 10 >= DRAW_BOUND_TOP && get_position_after(line_backing) - 10 < DRAW_BOUND_BOTTOM) {
             count_visible_after++;
         }
     }
@@ -107,8 +122,7 @@ int grid_dispatch_navigate_down() {
         line_backing_t *line_backing = &browser_lines[line_num];
         anim_list_t *anims = &line_backing->anims;
 
-        f32 position_y = line_backing->raw_position_y;
-        f32 partial_position_y = position_y - anims->remaining;
+        f32 partial_position_y = get_position_after(line_backing);
         if (!found_move_in && partial_position_y + 10 >= DRAW_BOUND_BOTTOM && partial_position_y - offset_y - 10 < DRAW_BOUND_BOTTOM) {
             // OSReport("ERROR: End position is out of bounds (%d)\n", line_num);
             f32 anim_distance = offset_y * 0.5;
@@ -124,10 +138,14 @@ int grid_dispatch_navigate_down() {
             grid_add_anim(line_num, ANIM_DIRECTION_UP, offset_y);
             // OSReport("Adding anim %d, current=%f sub=%f\n", line_num, position_y, offset_y);
         } else {
+            if (line_num == 0) {
+                OSReport("Current position = %f\n", line_backing->raw_position_y);
+                OSReport("Target position = %f\n", partial_position_y);
+            }
             line_backing->raw_position_y -= offset_y;
         }
 
-        f32 end_position_y = line_backing->raw_position_y - anims->remaining;
+        f32 end_position_y = get_position_after(line_backing);
         if (!found_move_out && end_position_y + offset_y + 10 >= DRAW_BOUND_TOP && end_position_y < DRAW_BOUND_TOP) {
             line_backing->transparency = 0.999;
             line_backing->moving_out = true;
@@ -178,7 +196,7 @@ void grid_update_icon_positions() {
         line_backing_t *line_backing = &browser_lines[line_num];
         anim_list_t *anims = &line_backing->anims;
 
-        f32 multiplier = 3 * 2;
+        f32 multiplier = 3 * 3;
         // if (anims->pending_count) {
         //     multiplier += anims->pending_count;
         //     if (multiplier > 8) multiplier = 8;
