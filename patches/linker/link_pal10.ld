@@ -67,3 +67,7 @@ pal10_prev_menu_id = 0x814ad3f8;
 pal10_save_empty = 0x814ca968;
 
 pal10_orig_thread_init = 0x8131c5c4;
+pal10_OSRestoreInterrupts = 0x8135f278;
+pal10_SelectThread = 0x81362b84;
+pal10_OSCreateThread = 0x81362db4;
+pal10_OSResumeThread = 0x81363174;

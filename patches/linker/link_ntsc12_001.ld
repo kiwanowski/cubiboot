@@ -65,3 +65,7 @@ ntsc12_001_save_empty = 0x814a0048;
 ntsc12_001_save_icon = 0x814a0080;
 
 ntsc12_001_orig_thread_init = 0x8131bfb0;
+ntsc12_001_OSRestoreInterrupts = 0x8135ff90;
+ntsc12_001_SelectThread = 0x813624c4;
+ntsc12_001_OSCreateThread = 0x8136271c;
+ntsc12_001_OSResumeThread = 0x81362ba4;

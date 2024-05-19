@@ -75,3 +75,7 @@ ntsc11_banner_pointer = 0x81481450;
 ntsc11_banner_ready = 0x814813f0;
 
 ntsc11_orig_thread_init = 0x8131bc18;
+ntsc11_OSRestoreInterrupts = 0x8135bc98;
+ntsc11_SelectThread = 0x8135f5a4;
+ntsc11_OSCreateThread = 0x8135f7d4;
+ntsc11_OSResumeThread = 0x8135fb94;

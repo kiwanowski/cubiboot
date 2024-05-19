@@ -65,3 +65,7 @@ pal11_save_empty = 0x81499728;
 pal11_save_icon = 0x81499760;
 
 pal11_orig_thread_init = 0x8131bb44;
+pal11_OSRestoreInterrupts = 0x8135bbb8;
+pal11_SelectThread = 0x8135f4c4;
+pal11_OSCreateThread = 0x8135f6f4;
+pal11_OSResumeThread = 0x8135fab4;

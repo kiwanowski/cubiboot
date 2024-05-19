@@ -70,3 +70,7 @@ ntsc10_save_icon = 0x8147a280;
 ntsc10_save_empty = 0x8147a248;
 
 ntsc10_orig_thread_init = 0x8131b4ec;
+ntsc10_OSRestoreInterrupts = 0x813361d8;
+ntsc10_SelectThread = 0x813387a4;
+ntsc10_OSCreateThread = 0x813389d4;
+ntsc10_OSResumeThread = 0x81338d94;

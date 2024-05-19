@@ -1,13 +1,14 @@
 #include "dolphin_os.h"
 #include "reloc.h"
+#include "attr.h"
 
 typedef void OSThread;
 
-BOOL (*OSRestoreInterrupts)(BOOL) = (void*)0x8135bc98;
-OSThread* (*SelectThread)(BOOL) = (void*)0x8135f5a4;
+__attribute_reloc__ BOOL (*OSRestoreInterrupts)(BOOL);
+__attribute_reloc__ OSThread* (*SelectThread)(BOOL);
 
-BOOL (*OSCreateThread)(void *thread, OSThreadStartFunction func, void* param, void* stack, u32 stackSize, s32 priority, u16 attr) = (void*)0x8135f7d4;
-s32 (*OSResumeThread)(void *thread) = (void*)0x8135fb94;
+__attribute_reloc__ BOOL (*OSCreateThread)(void *thread, OSThreadStartFunction func, void* param, void* stack, u32 stackSize, s32 priority, u16 attr);
+__attribute_reloc__ s32 (*OSResumeThread)(void *thread);
 
 // from https://github.com/projectPiki/pikmin2/blob/de4b757bcb49e10b6d6822e6198be93c01890dcf/src/Dolphin/os/OSThread.c#L336-L343
 void OSYieldThread() {
