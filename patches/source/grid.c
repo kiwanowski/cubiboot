@@ -25,9 +25,9 @@ line_backing_t browser_lines[128];
 extern int selected_slot;
 extern s32 top_line_num;
 
-const int raw_y_top = 64;
-const int base_y = 118;
-const f32 offset_y = 56;
+// const int raw_y_top = 64;
+// const int base_y = 118;
+const f32 offset_y = DRAW_OFFSET_Y;
 
 f32 get_position_after(line_backing_t *line_backing) {
     anim_list_t *anims = &line_backing->anims;
@@ -148,6 +148,11 @@ int grid_dispatch_navigate_up() {
             // OSReport("Current position = %f\n", position_y);
             // OSReport("End position = %f\n", end_position_y);
         }
+
+        // // remove boxes that are out of bounds
+        // if (line_backing->raw_position_y <= DRAW_BOUND_TOP - (offset_y * 0.4)  || line_backing->raw_position_y >= DRAW_BOUND_BOTTOM + (offset_y * 0.4)) {
+        //     line_backing->transparency = 0.0;
+        // }
     }
 
     return 0;
@@ -160,6 +165,7 @@ int grid_dispatch_navigate_down() {
     // calculate final pos after all pending anims would complete
     // if final pos is within bounds, add anims
 
+    // int count_visible = 0;
     int max_pending = 0;
     for (int line_num = 0; line_num < number_of_lines; line_num++) {
         line_backing_t *line_backing = &browser_lines[line_num];
@@ -167,6 +173,10 @@ int grid_dispatch_navigate_down() {
         if (anims->pending_count > max_pending) {
             max_pending = anims->pending_count;
         }
+
+        // if (line_backing->raw_position_y >= DRAW_BOUND_TOP - 10 && line_backing->raw_position_y < DRAW_BOUND_BOTTOM + 10) {
+        //     count_visible++;
+        // }
 
         if (anims->pending_count > 0 && anims->direction == ANIM_DIRECTION_DOWN) {
             OSReport("ERROR: Pending down anims\n");
@@ -178,6 +188,15 @@ int grid_dispatch_navigate_down() {
     //     OSReport("ERROR: Max anims exceeded\n");
     //     return 1;
     // }
+
+    // finish pending moves (fixes the visual bug!)
+    for (int line_num = 0; line_num < number_of_lines; line_num++) {
+        line_backing_t *line_backing = &browser_lines[line_num];
+        if (line_backing->moving_out) {
+            line_backing->transparency *= 0.1;
+        }
+    }
+
 
     bool found_move_in = false;
     bool found_move_out = false;
@@ -202,6 +221,14 @@ int grid_dispatch_navigate_down() {
             // OSReport("Adding anim %d, current=%f sub=%f\n", line_num, position_y, offset_y);
         } else {
             line_backing->raw_position_y -= offset_y;
+            // if (line_backing->raw_position_y < DRAW_BOUND_BOTTOM - 10 && line_backing->raw_position_y >= DRAW_BOUND_TOP + 10) {
+            //     OSReport("ERROR: Moved in-bounds (%d)\n", count_visible);
+            //     if (count_visible > 5) {
+            //         OSReport("ERROR: Too many visible\n");
+            //         while(1);
+            //         line_backing->transparency = 0.0;
+            //     }
+            // }
         }
 
         f32 end_position_y = get_position_after(line_backing);
@@ -211,9 +238,14 @@ int grid_dispatch_navigate_down() {
             line_backing->moving_in = false;
 
             found_move_out = true;
-            OSReport("Moving out %d\n", line_num);
-            // OSReport("Current position = %f\n", position_y);
-            // OSReport("End position = %f\n", end_position_y);
+            // OSReport("Moving out %d\n", line_num);
+            // OSReport("Moving out: Current position = %f\n", line_backing->raw_position_y);
+            // OSReport("Moving out: End position = %f\n", end_position_y);
+            // if (line_backing->raw_position_y - end_position_y > DRAW_OFFSET_Y) {
+            //     OSReport("ERROR: Too far out\n");
+            //     line_backing->transparency = 0;
+            //     // while(1);
+            // }
         }
     }
 
@@ -242,11 +274,6 @@ void grid_update_icon_positions() {
                 count_partially_visibile++;
             }
         }
-
-        // remove boxes that are out of bounds
-        if (line_backing->raw_position_y <= DRAW_BOUND_TOP - (offset_y * 0.85)  || line_backing->raw_position_y >= DRAW_BOUND_BOTTOM + (offset_y * 0.85)) {
-            line_backing->transparency = 0.0;
-        }
     }
 
     // OSReport("Partially Visible %d\n", count_partially_visibile);
@@ -256,10 +283,10 @@ void grid_update_icon_positions() {
         anim_list_t *anims = &line_backing->anims;
 
         f32 multiplier = 3 * 2;
-        // if (anims->pending_count) {
-        //     multiplier += anims->pending_count;
-        //     if (multiplier > 8) multiplier = 8;
-        // }
+        if (anims->pending_count) {
+            multiplier += anims->pending_count;
+            if (multiplier > 8) multiplier = 8;
+        }
 
         // transparency
         if (line_backing->transparency < 1.0) {
@@ -277,6 +304,16 @@ void grid_update_icon_positions() {
                     line_backing->transparency = 0.0;
                     line_backing->moving_out = false;
                 }
+
+                // if (count_visible > 5) {
+                //     // blip out far away lines
+                //     if (line_backing->anims.direction == ANIM_DIRECTION_UP && line_num < number_of_lines - 1) {
+                //         line_backing_t *next_line_backing = &browser_lines[line_num+1];
+                //         if (next_line_backing->raw_position_y > line_backing->raw_position_y + DRAW_OFFSET_Y - 20) {
+                //             line_backing->transparency = 0.0;
+                //         }
+                //     }
+                // }
             }
         }
 

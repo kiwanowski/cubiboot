@@ -368,7 +368,7 @@ void setup_icon_positions() {
         pos->opacity = 1.0;
 
 
-        f32 pos_x = base_x + (col * 56);
+        f32 pos_x = base_x + (col * DRAW_OFFSET_Y);
 #if defined(WITH_SPACE) && WITH_SPACE
         if (col >= 4) pos_x += 24; // card spacing
 #endif
@@ -579,8 +579,7 @@ __attribute_used__ s32 handle_gameselect_inputs() {
     }
 
     if (pad_status->buttons_down & PAD_TRIGGER_Z) {
-        void (*OSDumpHeap)() = (void*)0x81307e1c;
-        OSDumpHeap();
+        // add test code here
     }
 
     if (pad_status->buttons_down & PAD_BUTTON_B) {
@@ -646,7 +645,7 @@ __attribute_used__ s32 handle_gameselect_inputs() {
             } else {
                 Jac_PlaySe(SOUND_CARD_MOVE);
                 line_backing_t *line_backing = &browser_lines[selected_slot / 8];
-                if (get_position_after(line_backing) >= DRAW_BOUND_BOTTOM - 56) {
+                if (get_position_after(line_backing) >= DRAW_BOUND_BOTTOM - DRAW_OFFSET_Y - 10) {
                     if (grid_dispatch_navigate_down() == 0) {
                         selected_slot += 8;
                         top_line_num++;
@@ -664,7 +663,7 @@ __attribute_used__ s32 handle_gameselect_inputs() {
             } else {
                 Jac_PlaySe(SOUND_CARD_MOVE);
                 line_backing_t *line_backing = &browser_lines[selected_slot / 8];
-                if (top_line_num != 0 && get_position_after(line_backing) <= DRAW_BOUND_TOP + 56 - 10) {
+                if (top_line_num != 0 && get_position_after(line_backing) <= DRAW_BOUND_TOP + DRAW_OFFSET_Y - 10) {
                     if (grid_dispatch_navigate_up() == 0) {
                         selected_slot -= 8;
                         top_line_num--;

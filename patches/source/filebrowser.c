@@ -104,7 +104,7 @@ void __DVDFSInit_threaded(game_backing_entry_t *backing) {
     for (u32 i = 1; i < total_entries; ++i) { //Start @ 1 to skip FST header
         u32 string_offset = GET_OFFSET(p[i].offset);
         char *string = (char*)((u32)string_table + string_offset);
-        OSReport("FST (0x%08x) entry: %s\n", FILE_POSITION(i), string);
+        // OSReport("FST (0x%08x) entry: %s\n", FILE_POSITION(i), string);
         if (entry_table[i].filetype == T_FILE && strcmp(string, "opening.bnr") == 0) {
             OSReport("FST (0x%08x) entry: %s\n", FILE_POSITION(i), string);
             backing->dvd_bnr_offset = FILE_POSITION(i);
@@ -214,8 +214,8 @@ void *file_enum_worker(void* param) {
 
     memset((void*)0x80400000, 0, 0x300000); // clear assets
 
-    // test only
-    number_of_lines = 20;
+    // // test only
+    // number_of_lines = 100;
     grid_setup_func();
 
     OSReport("SECOND File enum:\n");
@@ -302,6 +302,11 @@ void *file_enum_worker(void* param) {
 
         current_ent_index++;
         game_backing_count = current_ent_index; // make entry active
+
+        if (current_ent_index >= 384) {
+            OSReport("ALPHA: Max game backings reached\n");
+            break;
+        }
     }
 
     f32 runtime = (f32)diff_usec(start_time, gettime()) / 1000.0;
