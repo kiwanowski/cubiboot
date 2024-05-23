@@ -9,7 +9,7 @@
 // patch_inst vNTSC_11(_gameselect_hide_cubes) 0x81327454 nop
 
 // patch_inst vNTSC_10(_force_lang) 0x8130b5b4 li r0, 2 // Force English=0, Japanese=2 (NTSC Only)
-patch_inst vNTSC_11(_force_lang) 0x8130b73c li r0, 2 // Force English=0, Japanese=2 (NTSC Only)
+// patch_inst vNTSC_11(_force_lang) 0x8130b73c li r0, 2 // Force English=0, Japanese=2 (NTSC Only)
 
 patch_inst_ntsc "_reduce_arena_size" 0x813328ec 0x8135825c 0x8135d998 0x8135d998 lis r3, -0x7ea0 // 0x81700000 -> 0x81600000
 patch_inst_pal "_reduce_arena_size" 0x8135b83c 0x8135817c 0x81360d10 lis r3, -0x7ea0 // 0x81700000 -> 0x81600000

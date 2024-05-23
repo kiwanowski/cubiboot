@@ -65,7 +65,7 @@ pal12_save_empty = 0x814cc128;
 pal12_save_icon = 0x814cc160;
 
 pal12_orig_thread_init = 0x8131c704;
-pal11_OSRestoreInterrupts = 0x81363308;
-pal11_SelectThread = 0x813659a0;
-pal11_OSCreateThread = 0x81365bf8;
-pal11_OSResumeThread = 0x81366080;
+pal12_OSRestoreInterrupts = 0x81363308;
+pal12_SelectThread = 0x813659a0;
+pal12_OSCreateThread = 0x81365bf8;
+pal12_OSResumeThread = 0x81366080;
