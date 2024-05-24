@@ -73,6 +73,9 @@ __attribute_data__ static GXColorS10 color_bg_inner;
 __attribute_data__ static GXColorS10 color_bg_outer_0;
 __attribute_data__ static GXColorS10 color_bg_outer_1;
 
+// for filebrowser
+__attribute_data__ volatile u32 stop_loading_games = 0;
+
 __attribute_used__ void mod_cube_colors() {
     if (cube_color == 0) {
         OSReport("Using default colors\n");
@@ -445,6 +448,8 @@ extern char boot_path[];
 
 __attribute_used__ void bs2start() {
     OSReport("DONE\n");
+    stop_loading_games = 1;
+    DCFlushRange((void*)&stop_loading_games, sizeof(stop_loading_games));
 
     memcpy(global_state, &local_state, sizeof(cubeboot_state));
     global_state->boot_code = 0xCAFEBEEF;

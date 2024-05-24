@@ -14,11 +14,14 @@
 
 #include "grid.h"
 #include "filebrowser.h"
+#include "os.h"
 
 #include "../../cubeboot/include/bnr.h"
 
 #define SD_TARGET_PATH "/"
 #define DEFAULT_THREAD_PRIO 0x10
+
+#define MAX_GCM_SIZE 0x57058000
 
 // default
 // favorites
@@ -27,8 +30,9 @@
 typedef struct {
     bool is_gcm;
     bool is_valid;
-    u32 fst_offset;
     u32 fst_size;
+    u32 fst_offset;
+    u32 dvd_bnr_size;
     u32 dvd_bnr_offset;
     u32 mem_bnr_offset;
     u32 aram_bnr_offset;
@@ -67,9 +71,6 @@ void weird_panic() {
 #define FILE_POSITION(i) (entry_table[i].addr)
 #define FILE_LENGTH(i) (entry_table[i].len)
 
-// from https://github.com/doldecomp/melee/blob/62e7b6af39da9ac19288ac7fbb454ad04d342658/src/dolphin/os/os.h#L16
-#define OSRoundUp32B(x) (((u32) (x) + 32 - 1) & ~(32 - 1))
-
 // mostly from https://github.com/PsiLupan/FRAY/blob/7fd533b0aa1274a2bd01e060b1547386b30c3f26/src/ogcext/dvd.c#L229
 static u32 total_entries = 0; //r13_441C
 static char* string_table = NULL; //r13_4420
@@ -79,16 +80,19 @@ static u8 __attribute__((aligned(32))) fst_buf[0x80000];
 static DiskHeader __attribute__((aligned(32))) header;
 static BNR __attribute__((aligned(32))) game_loading_banner;
 
+extern volatile u32 stop_loading_games;
+
 void __DVDFSInit_threaded(game_backing_entry_t *backing) {
-    u32 size = OSRoundUp32B(header.FSTSize);
+    u32 size = OSRoundUp32B(backing->fst_size);
+
     fst = &fst_buf[0];
     
     for (u32 i = 0; size > 0; i++) {
         if (size > 0x4000) {
-            dvd_threaded_read(fst + (i * 0x4000), 0x4000, (header.FSTOffset + (0x4000 * i)));
+            dvd_threaded_read(fst + (i * 0x4000), 0x4000, (backing->fst_offset + (0x4000 * i)));
             size -= 0x4000;
         } else {
-            dvd_threaded_read(fst + (i * 0x4000), size, (header.FSTOffset + (0x4000 * i)));
+            dvd_threaded_read(fst + (i * 0x4000), size, (backing->fst_offset + (0x4000 * i)));
             size = 0;
         }
     }
@@ -107,6 +111,7 @@ void __DVDFSInit_threaded(game_backing_entry_t *backing) {
         // OSReport("FST (0x%08x) entry: %s\n", FILE_POSITION(i), string);
         if (entry_table[i].filetype == T_FILE && strcmp(string, "opening.bnr") == 0) {
             OSReport("FST (0x%08x) entry: %s\n", FILE_POSITION(i), string);
+            backing->dvd_bnr_size = FILE_LENGTH(i);
             backing->dvd_bnr_offset = FILE_POSITION(i);
             break;
         }
@@ -210,6 +215,9 @@ void *file_enum_worker(void* param) {
     OSReport("FIRST File enum:\n");
     int number_of_entries = early_file_enum();
     number_of_lines = (number_of_entries + 7) >> 3;
+    if (number_of_lines < 4) {
+        number_of_lines = 4;
+    }
     OSReport("Current lines = %d\n", number_of_lines);
 
     memset((void*)0x80200000, 0, 0x300000); // clear assets
@@ -254,6 +262,12 @@ void *file_enum_worker(void* param) {
         game_backing->fst_size = header.FSTSize;
         OSYieldThread();
 
+        DCFlushRange(&header, sizeof(DiskHeader));
+        if (stop_loading_games) {
+            OSReport("STOPPING GAME LOADING\n");
+            break;
+        }
+
         OSReport("FSTSize = 0x%08x\n", game_backing->fst_size);
         __DVDFSInit_threaded(game_backing);
         if (game_backing->dvd_bnr_offset == 0) {
@@ -272,7 +286,7 @@ void *file_enum_worker(void* param) {
             banner_buffer = (void*)&asset->banner;
         }
 
-        dvd_threaded_read(banner_buffer, sizeof(BNR), game_backing->dvd_bnr_offset); //Read banner file
+        dvd_threaded_read(banner_buffer, game_backing->dvd_bnr_size, game_backing->dvd_bnr_offset); //Read banner file
         OSYieldThread();
 
         // print the 4 bytes of the magic
