@@ -428,19 +428,19 @@ void* LoadGame_Apploader() {
         void *dst = 0;
         int len = 0,offset = 0;
         int res = app_main(&dst,&len,&offset);
-		OSReport("res = %d\n", res);
+		custom_OSReport("res = %d\n", res);
         if (!res) break;
         err = dvd_read(dst,len,offset);
         if (err) {
-            OSReport("Apploader read failed\n");
+            custom_OSReport("Apploader read failed\n");
             while(1);
         }
         DCFlushRange(dst,len);
     }
-	OSReport("GOT ENTRY\n");
+	custom_OSReport("GOT ENTRY\n");
 
     void* entrypoint = app_final();
-    OSReport("THIS ENTRY, %p\n", entrypoint);
+    custom_OSReport("THIS ENTRY, %p\n", entrypoint);
     return entrypoint;
 }
 
@@ -468,6 +468,11 @@ __attribute_used__ void bs2start() {
 
     int ret = dvd_custom_open(IPC_DEVICE_SD, boot_path, FILE_ENTRY_TYPE_FILE, 0);
     OSReport("OPEN ret: %08x\n", ret);
+    (void)ret;
+
+    while (!PADSync());
+    OSDisableInterrupts();
+    __OSStopAudioSystem();
 
     // read boot info into lowmem
     struct dolphin_lowmem *lowmem = (struct dolphin_lowmem*)0x80000000;
@@ -476,20 +481,24 @@ __attribute_used__ void bs2start() {
     lowmem->b_physical_memory_size = 0x01800000;
     dvd_read(&lowmem->b_disk_info, 0x20, 0);
 
-    memset((void*)0x80100000, 0, 0x81200000 - 0x80100000); // cleanup
+    u32 start_addr = 0x80100000;
+    u32 end_addr = 0x81300000;
+    u32 len = end_addr - start_addr;
+
+    memset((void*)start_addr, 0, len); // cleanup
+    DCFlushRange((void*)start_addr, len);
+    ICInvalidateRange((void*)start_addr, len);
+
     prog_entrypoint = (u32)LoadGame_Apploader();
 
-    OSReport("booting...\n");
-
-    while (!PADSync());
-    OSDisableInterrupts();
-    __OSStopAudioSystem();
+    custom_OSReport("booting...\n");
 
     // if (prog_entrypoint == 0) {
     //     OSReport("HALT: No program\n");
     //     while(1); // block forever
     // }
 
+    // TODO: copy a DCZeroRange routine to 0x81200000 instead
     void (*entry)(void) = (void(*)(void))prog_entrypoint;
     run(entry, 0x81300000, 0x20000);
 

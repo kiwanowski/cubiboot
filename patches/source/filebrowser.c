@@ -234,6 +234,7 @@ static int early_file_enum() {
 
     f32 runtime = (f32)diff_usec(start_time, gettime()) / 1000.0;
     OSReport("File enum completed! took=%f (%d)\n", runtime, game_backing_count);
+    (void)runtime;
 
     start_time = gettime();
     qsort(sorted_raw_game_backing_list, current_ent_index, sizeof(game_backing_entry_t*), &cmp_iso_path);
@@ -360,6 +361,7 @@ void *file_enum_worker(void* param) {
 
     f32 runtime = (f32)diff_usec(start_time, gettime()) / 1000.0;
     OSReport("Second file enum completed! took=%f (%d)\n", runtime, game_backing_count);
+    (void)runtime;
 
     OSReport("[DONE] - KILL DOLPHIN NOW\n");
     return NULL;
