@@ -79,3 +79,8 @@ ntsc12_101_font_ptr_ptr_b = 0x81483a1c;
 ntsc12_101___CARDGetStatusEx = 0x8135d110;
 ntsc12_101_get_card_info = 0x8131c338;
 ntsc12_101_draw_card_info = 0x8131af70;
+
+ntsc12_101_SetEffectivePriority = 0x81362468;
+ntsc12_101___OSGetEffectivePriority = 0x8136242c;
+ntsc12_101_OSSleepThread = 0x81363100;
+ntsc12_101_OSWakeupThread = 0x813631ec;

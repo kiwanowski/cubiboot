@@ -17,6 +17,9 @@
 #include "gc_dvd.h"
 #include "filebrowser.h"
 
+#include "boot.h"
+#include "dol.h"
+
 #define CUBE_TEX_WIDTH 84
 #define CUBE_TEX_HEIGHT 84
 
@@ -74,7 +77,7 @@ __attribute_data__ static GXColorS10 color_bg_outer_0;
 __attribute_data__ static GXColorS10 color_bg_outer_1;
 
 // for filebrowser
-__attribute_data__ volatile u32 stop_loading_games = 0;
+// __attribute_data__ u32 stop_loading_games = 0;
 
 __attribute_used__ void mod_cube_colors() {
     if (cube_color == 0) {
@@ -446,10 +449,18 @@ void* LoadGame_Apploader() {
 
 extern char boot_path[];
 
+__attribute__((aligned(32))) static DOLHEADER dol_hdr;
 __attribute_used__ void bs2start() {
     OSReport("DONE\n");
-    stop_loading_games = 1;
-    DCFlushRange((void*)&stop_loading_games, sizeof(stop_loading_games));
+
+    // iwrite32((u32)&stop_loading_games, 1);
+    // sync_after_write(&stop_loading_games, 4);
+
+    OSReport("Waiting for file enum\n");
+    OSLockMutex(game_enum_mutex);
+    OSYieldThread();
+    udelay(100 * 1000); // probably overkill??
+    OSYieldThread();
 
     // memcpy(global_state, &local_state, sizeof(cubeboot_state));
     // global_state->boot_code = 0xCAFEBEEF;
@@ -474,13 +485,6 @@ __attribute_used__ void bs2start() {
     OSDisableInterrupts();
     __OSStopAudioSystem();
 
-    // read boot info into lowmem
-    struct dolphin_lowmem *lowmem = (struct dolphin_lowmem*)0x80000000;
-    lowmem->a_boot_magic = 0x0D15EA5E;
-    lowmem->a_version = 0x00000001;
-    lowmem->b_physical_memory_size = 0x01800000;
-    dvd_read(&lowmem->b_disk_info, 0x20, 0);
-
     u32 start_addr = 0x80100000;
     u32 end_addr = 0x81300000;
     u32 len = end_addr - start_addr;
@@ -489,16 +493,59 @@ __attribute_used__ void bs2start() {
     DCFlushRange((void*)start_addr, len);
     ICInvalidateRange((void*)start_addr, len);
 
-    prog_entrypoint = (u32)LoadGame_Apploader();
+    // only load the apploader if the boot path is not a .dol file
+    extern int strncmpci(const char * str1, const char * str2, size_t num);
+    if (strncmpci(boot_path + strlen(boot_path) - 4, ".dol", 4) == 0 || strncmpci(boot_path + strlen(boot_path) - 8, ".dol+cli", 8) == 0) {
+        custom_OSReport("Booting DOL\n");
 
-    custom_OSReport("booting...\n");
+        // file_status_t file_status;
+        // dvd_custom_status(IPC_DEVICE_SD, &file_status);
+        // u64 dol_size = file_status.fsize;
+        // custom_OSReport("DOL size: %x\n", dol_size);
 
-    // if (prog_entrypoint == 0) {
-    //     OSReport("HALT: No program\n");
-    //     while(1); // block forever
-    // }
+        DOLHEADER *hdr = &dol_hdr;
+        dvd_read(hdr, sizeof(DOLHEADER), 0);
 
-    // TODO: copy a DCZeroRange routine to 0x81200000 instead
+        // Inspect text sections to see if what we found lies in here
+        for (int i = 0; i < MAXTEXTSECTION; i++) {
+            if (hdr->textAddress[i] && hdr->textLength[i]) {
+                dvd_read((void*)hdr->textAddress[i], hdr->textLength[i], hdr->textOffset[i]);
+            }
+        }
+
+        // Inspect data sections (shouldn't really need to unless someone was sneaky..)
+        for (int i = 0; i < MAXDATASECTION; i++) {
+            if (hdr->dataAddress[i] && hdr->dataLength[i]) {
+                dvd_read((void*)hdr->dataAddress[i], hdr->dataLength[i], hdr->dataOffset[i]);
+            }
+        }
+
+        custom_OSReport("Copy done...\n");
+
+        // Clear BSS
+        // TODO: check if this overlaps with IPL
+        memset((void*)hdr->bssAddress, 0, hdr->bssLength);
+
+        prog_entrypoint = hdr->entryPoint;
+    } else {
+        // read boot info into lowmem
+        struct dolphin_lowmem *lowmem = (struct dolphin_lowmem*)0x80000000;
+        lowmem->a_boot_magic = 0x0D15EA5E;
+        lowmem->a_version = 0x00000001;
+        lowmem->b_physical_memory_size = 0x01800000;
+
+        // set video mode PAL
+        if (rmode->viTVMode >> 2 == VI_PAL)
+            lowmem->tv_mode = 1;
+
+        dvd_read(&lowmem->b_disk_info, 0x20, 0);
+
+        prog_entrypoint = (u32)LoadGame_Apploader();
+    }
+
+    custom_OSReport("booting... (%08x)\n", prog_entrypoint);
+
+    // TODO: copy a DCZeroRange routine to 0x81200000 instead (like sidestep)
     void (*entry)(void) = (void(*)(void))prog_entrypoint;
     run(entry, 0x81300000, 0x20000);
 

@@ -249,3 +249,18 @@ static inline void ppc_set_link_register(void *lr)
     : "r" (lr)
   );
 }
+
+static inline void __eieio(void)
+{
+  __asm__ volatile (
+    "eieio"
+  );
+}
+
+// from Nintendont
+static inline void iwrite32(u32 addr, u32 x) {
+	asm volatile("stw %0,0(%1) ; eieio" : : "r"(x), "b"(0x40000000 | addr));
+}
+
+void sync_before_read(void *p, u32 len);
+void sync_after_write(const void *p, u32 len);

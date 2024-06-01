@@ -1,3 +1,5 @@
+#pragma once
+
 #include <gctypes.h>
 #include "config.h"
 
@@ -6,8 +8,106 @@
 // gcbool
 typedef unsigned int BOOL;
 
+typedef u16 OSThreadState;
+typedef s32 OSPriority;  //  0 highest, 31 lowest
+
 typedef void* (*OSThreadStartFunction)(void*);
 
+typedef struct OSThread OSThread;
+typedef struct OSThreadQueue OSThreadQueue;
+typedef struct OSThreadLink OSThreadLink;
+
+typedef struct OSMutex OSMutex;
+typedef struct OSMutexQueue OSMutexQueue;
+typedef struct OSMutexLink OSMutexLink;
+typedef struct OSCond OSCond;
+
+struct OSThreadLink {
+    OSThread* next;
+    OSThread* prev;
+};
+
+struct OSThreadQueue {
+    /* 0x0 */ OSThread* head;
+    /* 0x4 */ OSThread* tail;
+};
+
+struct OSMutexLink {
+    OSMutex* next;
+    OSMutex* prev;
+};
+
+struct OSMutexQueue {
+    OSMutex* head;
+    OSMutex* tail;
+};
+
+typedef struct OSMutex {
+    /* 0x00 */ OSThreadQueue queue;
+    /* 0x08 */ OSThread* thread;
+    /* 0x0C */ s32 count;
+    /* 0x10 */ OSMutexLink link;
+} OSMutex;  // Size: 0x18
+
+typedef struct OSCond {
+    OSThreadQueue queue;
+} OSCond;
+
+typedef struct OSContext {
+    /* 0x000 */ u32 gpr[32];
+    /* 0x080 */ u32 cr;
+    /* 0x084 */ u32 lr;
+    /* 0x088 */ u32 ctr;
+    /* 0x08C */ u32 xer;
+    /* 0x090 */ f64 fpr[32];
+    /* 0x190 */ u32 field_0x190;
+    /* 0x194 */ u32 fpscr;
+    /* 0x198 */ u32 srr0;
+    /* 0x19C */ u32 srr1;
+    /* 0x1A0 */ u16 mode;
+    /* 0x1A2 */ u16 state;
+    /* 0x1A4 */ u32 gqr[8];
+    /* 0x1C4 */ f64 ps[32];
+} OSContext;
+
+struct OSThread {
+    OSContext context;
+    OSThreadState state;
+    u16 attributes;
+    s32 suspend_count;
+    s32 effective_priority;
+    u32 base_priority;
+    void* exit_value;
+    OSThreadQueue* queue;
+    OSThreadLink link;
+    OSThreadQueue join_queue;
+    OSMutex* mutex;
+    OSMutexQueue owned_mutexes;
+    OSThreadLink active_threads_link;
+    u8* stack_base;
+    u32* stack_end;
+    u8* error_code;
+    void* data[2];
+};
+
+typedef void* OSMessage;
+
+typedef struct OSMessageQueue {
+    /* 0x00 */ OSThreadQueue sending_queue;
+    /* 0x08 */ OSThreadQueue receiving_queue;
+    /* 0x10 */ OSMessage* message_array;
+    /* 0x14 */ s32 num_messages;
+    /* 0x18 */ s32 first_index;
+    /* 0x1C */ s32 num_used;
+} OSMessageQueue;
+
+// Flags to turn blocking on/off when sending/receiving message
+#define OS_MESSAGE_NOBLOCK 0
+#define OS_MESSAGE_BLOCK 1
+
+typedef enum {
+	OS_MSG_PERSISTENT = (1 << 0),
+} OSMessageFlags;
 
 struct dolphin_debugger_info {
 	uint32_t		present;
@@ -61,3 +161,17 @@ struct dolphin_lowmem {
 void OSYieldThread();
 BOOL dolphin_OSCreateThread(void *thread, OSThreadStartFunction func, void* param, void* stack, u32 stackSize, s32 priority, u16 attr);
 s32 dolphin_OSResumeThread(void *thread);
+
+void OSInitMutex(OSMutex* mutex);
+void OSLockMutex(OSMutex* mutex);
+void OSUnlockMutex(OSMutex* mutex);
+void __OSUnlockAllMutex(OSThread* thread);
+BOOL OSTryLockMutex(OSMutex* mutex);
+
+void OSInitCond(OSCond* cond);
+void OSWaitCond(OSCond* cond, OSMutex* mutex);
+void OSSignalCond(OSCond* cond);
+
+void OSInitMessageQueue(OSMessageQueue* mq, OSMessage* msgArray, s32 msgCount);
+BOOL OSSendMessage(OSMessageQueue* mq, OSMessage msg, s32 flags);
+BOOL OSReceiveMessage(OSMessageQueue* mq, OSMessage* msg, s32 flags);

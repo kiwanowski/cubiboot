@@ -79,3 +79,8 @@ pal11_font_ptr_ptr_b = 0x8147c184;
 pal11___CARDGetStatusEx = 0x8136fa1c;
 pal11_get_card_info = 0x8131beb4;
 pal11_draw_card_info = 0x8131aaec;
+
+pal11_SetEffectivePriority = 0x8135f304;
+pal11___OSGetEffectivePriority = 0x8135f2c8;
+pal11_OSSleepThread = 0x8135feac;
+pal11_OSWakeupThread = 0x8135ff98;

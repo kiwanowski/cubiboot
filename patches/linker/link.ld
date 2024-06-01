@@ -12,6 +12,10 @@ MEMORY {
 
 /* used by usbgecko */
 EXI = 0xCC006800;
+DSP = 0xCC005000;
+
+/* used by OS */
+OS_CURRENT_THREAD = 0x800000E4;
 
 SECTIONS {
     . = 0x81600000;

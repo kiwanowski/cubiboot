@@ -3,6 +3,7 @@
 #include "../../cubeboot/include/bnr.h"
 
 extern int game_backing_count;
+extern OSMutex *game_enum_mutex;
 // extern game_backing_entry_t *game_backing_list[1000];
 
 typedef struct {
@@ -15,6 +16,8 @@ typedef struct {
 
 void start_file_enum();
 void start_main_loop();
+
+bool is_dol_slot(int slot_num);
 
 game_asset_t *claim_game_asset();
 void free_game_asset(int backing_index);

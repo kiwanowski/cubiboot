@@ -15,6 +15,7 @@
 
 #include "grid.h"
 #include "filebrowser.h"
+#include "util.h"
 #include "os.h"
 
 #include "../../cubeboot/include/bnr.h"
@@ -29,6 +30,7 @@
 // alphabetical (optionally show letter?)
 
 typedef struct {
+    bool is_dol;
     bool is_gcm;
     bool is_valid;
     u32 fst_size;
@@ -80,7 +82,10 @@ static u8 *fst = NULL;
 static DiskHeader __attribute__((aligned(32))) header;
 static BNR __attribute__((aligned(32))) game_loading_banner;
 
-extern volatile u32 stop_loading_games;
+// extern u32 stop_loading_games;
+
+static OSMutex game_enum_mutex_obj;
+OSMutex *game_enum_mutex = &game_enum_mutex_obj;
 
 // return the specified letter in lowercase
 char my_tolower(int c) {
@@ -152,6 +157,15 @@ void __DVDFSInit_threaded(game_backing_entry_t *backing) {
     OSYieldThread();
 }
 
+bool is_dol_slot(int slot_num) {
+    game_backing_entry_t *backing = sorted_raw_game_backing_list[slot_num];
+    if (backing != NULL) {
+        return  backing->is_dol;
+    }
+
+    return false;
+}
+
 // a function that will allocate a new entry in the asset list
 game_asset_t *claim_game_asset() {
     for (int i = 0; i < 512; i++) {
@@ -213,8 +227,9 @@ static int early_file_enum() {
             continue;
 
         char *ext = FileSuffix(ent.name);
-        if (strcmp(ext, ".iso") != 0)
+        if (strncmpci(ext, ".iso", 4) != 0 && strncmpci(ext, ".gcm", 4) != 0 && strncmpci(ext, ".dol", 4) != 0)
             continue;
+
 
 #ifdef PRINT_READDIR_NAMES
         OSReport("READDIR ent(%u): %s [len=%d]\n", ent.type, ent.name, strlen(ent.name));
@@ -224,6 +239,9 @@ static int early_file_enum() {
         strcpy(game_backing->iso_path, SD_TARGET_PATH);
         strcat(game_backing->iso_path, ent.name);
         game_backing->disc_name[0] = '\0'; // zero name string
+
+        if (strncmpci(ext, ".dol", 4) == 0 || strncmpci(ext, ".dol+cli", 8) == 0)
+            game_backing->is_dol = true;
 
         // ret = dvd_custom_open(IPC_DEVICE_SD, game_backing->iso_path, FILE_ENTRY_TYPE_FILE, IPC_FILE_FLAG_DISABLECACHE | IPC_FILE_FLAG_DISABLEFASTSEEK);
         // OSReport("OPEN ret: %d\n", ret);
@@ -264,6 +282,11 @@ void *file_enum_worker(void* param) {
     u64 start_time = gettime();
     int current_ent_index = 0;
     for (int i = 0; i < number_of_entries; i++) {
+        if (!OSTryLockMutex(game_enum_mutex)) {
+            OSReport("STOPPING GAME LOADING\n");
+            break;
+        }
+
         OSReport("game backing: %d\n", i);
         game_backing_entry_t *game_backing = sorted_raw_game_backing_list[i];
         int ret = dvd_threaded_custom_open(IPC_DEVICE_SD, game_backing->iso_path, FILE_ENTRY_TYPE_FILE, IPC_FILE_FLAG_DISABLECACHE | IPC_FILE_FLAG_DISABLEFASTSEEK);
@@ -272,80 +295,100 @@ void *file_enum_worker(void* param) {
         }
         OSYieldThread();
 
-        OSReport("BEFORE THREAD READ, %p\n", &header);
-        dvd_threaded_read(&header, sizeof(DiskHeader), 0); //Read in the disc header
-        OSYieldThread();
+        if (game_backing->is_dol) {
+            OSReport("DOL loaded: %s\n", game_backing->iso_path);
 
-        if (header.DVDMagicWord != 0xC2339F3D) {
-            //We'll do some error handling for this later
-            OSReport("ERROR ERROR! MAGIC IS BAD, %08x\n", header.DVDMagicWord);
-            OSReport("skipping bad ISO: %s\n", game_backing->iso_path);
-            continue;
+            if (current_ent_index < 512) {
+                game_asset_t *asset = &(*game_assets)[current_ent_index];
+                OSReport("Claiming asset %d (@%p)\n", current_ent_index, asset);
+                asset->backing_index = current_ent_index;
+                asset->in_use = 1;
+
+                memset(&asset->game_id[0], 0, sizeof(asset->game_id));
+                BNR *banner_buffer = (void*)&asset->banner;
+
+                strncpy(banner_buffer->desc[0].fullGameName, game_backing->iso_path, 128);
+                banner_buffer->desc[0].fullGameName[63] = '\0';
+
+                banner_buffer->desc[0].gameName[0] = '\0';
+                banner_buffer->desc[0].company[0] = '\0';
+                banner_buffer->desc[0].fullCompany[0] = '\0';
+                banner_buffer->desc[0].description[0] = '\0';
+            }
+
         } else {
-            game_backing->is_gcm = true;
+            OSReport("BEFORE THREAD READ, %p\n", &header);
+            dvd_threaded_read(&header, sizeof(DiskHeader), 0); //Read in the disc header
+            OSYieldThread();
+
+            if (header.DVDMagicWord != 0xC2339F3D) {
+                //We'll do some error handling for this later
+                OSReport("ERROR ERROR! MAGIC IS BAD, %08x\n", header.DVDMagicWord);
+                OSReport("skipping bad ISO: %s\n", game_backing->iso_path);
+                continue;
+            } else {
+                game_backing->is_gcm = true;
+            }
+
+            strncpy(game_backing->disc_name, header.GameName, 64);
+
+            char game_id[8];
+            memcpy(game_id, &header, 6);
+            game_id[6] = '\x00';
+            OSReport("GAME loaded: %s\n", game_id);
+
+            game_backing->fst_offset = header.FSTOffset;
+            game_backing->fst_size = header.FSTSize;
+            OSYieldThread();
+
+            DCFlushRange(&header, sizeof(DiskHeader));
+
+            OSReport("FSTSize = 0x%08x\n", game_backing->fst_size);
+            __DVDFSInit_threaded(game_backing);
+            if (game_backing->dvd_bnr_offset == 0) {
+                OSReport("No opening.bnr found, skipping\n");
+                continue;
+            }
+
+            OSReport("Reading opening.bnr\n");
+            BNR *banner_buffer = &game_loading_banner;
+            if (current_ent_index < 512) {
+                game_asset_t *asset = &(*game_assets)[current_ent_index];
+                OSReport("Claiming asset %d (@%p)\n", current_ent_index, asset);
+                asset->backing_index = current_ent_index;
+                asset->in_use = 1;
+
+                memcpy(&asset->game_id[0], &game_id[0], sizeof(game_id));
+
+                banner_buffer = (void*)&asset->banner;
+            }
+
+            dvd_threaded_read(banner_buffer, game_backing->dvd_bnr_size, game_backing->dvd_bnr_offset); //Read banner file
+            OSYieldThread();
+
+            // print the 4 bytes of the magic
+            OSReport("BNR magic: %c%c%c%c\n", banner_buffer->magic[0], banner_buffer->magic[1], banner_buffer->magic[2], banner_buffer->magic[3]);
+
+            // u32 bnr_magic = *(u32*)banner_buffer->magic[0];
+            // if (bnr_magic != 0x424e5231 && bnr_magic != 0x424e5232) {
+            //     OSReport("Invalid banner magic, skipping\n");
+            //     continue;
+            // }
+
+            if (banner_buffer->desc[0].fullGameName[0] == 0) {
+                strncpy(banner_buffer->desc[0].fullGameName, game_backing->disc_name, 63);
+                banner_buffer->desc[0].fullGameName[63] = '\0';
+            }
+
+            if (banner_buffer->desc[0].description[0] == 0) {
+                strncpy(banner_buffer->desc[0].description, game_backing->iso_path, 127);
+                banner_buffer->desc[0].description[127] = '\0';
+            }
+
+            // OSReport("Copying banner to ARAM\n");
+            // aram_copy(&game_backing->aram_req, banner_buffer, 0x0200000 + (i * sizeof(BNR)), sizeof(BNR));
         }
 
-        strncpy(game_backing->disc_name, header.GameName, 64);
-
-        char game_id[8];
-        memcpy(game_id, &header, 6);
-        game_id[6] = '\x00';
-        OSReport("GAME loaded: %s\n", game_id);
-
-        game_backing->fst_offset = header.FSTOffset;
-        game_backing->fst_size = header.FSTSize;
-        OSYieldThread();
-
-        DCFlushRange(&header, sizeof(DiskHeader));
-        if (stop_loading_games) {
-            OSReport("STOPPING GAME LOADING\n");
-            break;
-        }
-
-        OSReport("FSTSize = 0x%08x\n", game_backing->fst_size);
-        __DVDFSInit_threaded(game_backing);
-        if (game_backing->dvd_bnr_offset == 0) {
-            OSReport("No opening.bnr found, skipping\n");
-            continue;
-        }
-
-        OSReport("Reading opening.bnr\n");
-        BNR *banner_buffer = &game_loading_banner;
-        if (current_ent_index < 512) {
-            game_asset_t *asset = &(*game_assets)[current_ent_index];
-            OSReport("Claiming asset %d (@%p)\n", current_ent_index, asset);
-            asset->backing_index = current_ent_index;
-            asset->in_use = 1;
-
-            memcpy(&asset->game_id[0], &game_id[0], sizeof(game_id));
-
-            banner_buffer = (void*)&asset->banner;
-        }
-
-        dvd_threaded_read(banner_buffer, game_backing->dvd_bnr_size, game_backing->dvd_bnr_offset); //Read banner file
-        OSYieldThread();
-
-        // print the 4 bytes of the magic
-        OSReport("BNR magic: %c%c%c%c\n", banner_buffer->magic[0], banner_buffer->magic[1], banner_buffer->magic[2], banner_buffer->magic[3]);
-
-        // u32 bnr_magic = *(u32*)banner_buffer->magic[0];
-        // if (bnr_magic != 0x424e5231 && bnr_magic != 0x424e5232) {
-        //     OSReport("Invalid banner magic, skipping\n");
-        //     continue;
-        // }
-
-        if (banner_buffer->desc[0].fullGameName[0] == 0) {
-            strncpy(banner_buffer->desc[0].fullGameName, game_backing->disc_name, 63);
-            banner_buffer->desc[0].fullGameName[63] = '\0';
-        }
-
-        if (banner_buffer->desc[0].description[0] == 0) {
-            strncpy(banner_buffer->desc[0].description, game_backing->iso_path, 127);
-            banner_buffer->desc[0].description[127] = '\0';
-        }
-
-        // OSReport("Copying banner to ARAM\n");
-        // aram_copy(&game_backing->aram_req, banner_buffer, 0x0200000 + (i * sizeof(BNR)), sizeof(BNR));
 
         // register game backing
         game_backing_list[current_ent_index] = game_backing;
@@ -357,6 +400,8 @@ void *file_enum_worker(void* param) {
             OSReport("ALPHA: Max game backings reached\n");
             break;
         }
+
+        OSUnlockMutex(game_enum_mutex);
     }
 
     f32 runtime = (f32)diff_usec(start_time, gettime()) / 1000.0;
@@ -374,6 +419,8 @@ void start_file_enum() {
     u32 thread_stack_size = sizeof(thread_stack);
     void *thread_stack_top = thread_stack + thread_stack_size;
     s32 thread_priority = DEFAULT_THREAD_PRIO + 3;
+
+    OSInitMutex(game_enum_mutex);
 
     dolphin_OSCreateThread(&thread_obj[0], file_enum_worker, 0, thread_stack_top, thread_stack_size, thread_priority, 0);
     dolphin_OSResumeThread(&thread_obj[0]);

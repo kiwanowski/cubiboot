@@ -13,6 +13,7 @@
 #include "grid.h"
 #include "filebrowser.h"
 
+#include "dol_tex_bin.h"
 #include "font.h"
 
 // TODO: this is all zeros except for one BNRDesc, so replace it with a sparse version
@@ -46,7 +47,7 @@ __attribute_reloc__ void (*change_model)(model* m);
 // for menu elements
 __attribute_reloc__ void (*draw_grid)(Mtx position, u8 alpha);
 __attribute_reloc__ void (*draw_box)(u32 index, box_draw_group* header, GXColor* rasc, int inside_x, int inside_y, int inside_width, int inside_height);
-__attribute_reloc__ void (*draw_start_info)(u8 alpha);
+// __attribute_reloc__ void (*draw_start_info)(u8 alpha);
 __attribute_reloc__ void (*draw_start_anim)(u8 alpha);
 __attribute_reloc__ void (*draw_blob_fixed)(void *blob_ptr, void *blob_a, void *blob_b, GXColor *color);
 __attribute_reloc__ void (*draw_blob_text)(u32 type, void *blob, GXColor *color, char *str, s32 len);
@@ -103,6 +104,7 @@ static selected_mod_t selected_icon_mod;
 // Define constants for max dimensions
 void setup_icon_positions();
 
+__attribute__((aligned(4))) static tex_data icon_texture;
 __attribute__((aligned(4))) static tex_data banner_texture;
 
 void draw_text(char *s, s16 size, u16 x, u16 y, GXColor *color) {
@@ -225,6 +227,25 @@ __attribute_used__ void custom_gameselect_init() {
     textured_icon_tex->width = 64;
     textured_icon_tex->height = 64;
 
+    // icon texture
+    icon_texture.format = GX_TF_RGB5A3;
+    icon_texture.width = 32;
+    icon_texture.height = 32;
+
+    icon_texture.lodbias = 0; // used by GX_InitTexObjLOD
+    icon_texture.index = 0x00;
+
+    icon_texture.unk1 = 0x00;
+    icon_texture.unk2 = 0x00;
+    icon_texture.unk3 = 0x00;
+    icon_texture.unk4 = 0x00;
+    icon_texture.unk5 = 0x00;
+    icon_texture.unk6 = 0x00;
+    icon_texture.unk7 = 0x01; // used by GX_InitTexObjLOD
+    icon_texture.unk8 = 0x01; // used by GX_InitTexObjLOD
+    icon_texture.unk9 = 0x00;
+    icon_texture.unk10 = 0x00;
+
     // banner image
     banner_texture.format = GX_TF_RGB5A3;
     banner_texture.width = 96;
@@ -292,16 +313,26 @@ __attribute_used__ void draw_save_icon(position_t *pos, u32 slot_num, u8 alpha, 
 
         // icon
         tex_data *icon_tex = &m->data->tex->dat[1];
-        // u32 target_texture_data = (u32)assets[index].icon_rgb5;
-        // u16 *source_texture_data = (u16*)assets[0].banner.pixelData;
-        u16 *source_texture_data = (u16*)asset->banner.pixelData;
-        u32 target_texture_data = (u32)source_texture_data;
+        if (is_dol_slot(slot_num)) {
+            u32 target_texture_data = (u32)&dol_tex_bin[0];
 
-        s32 desired_offset = (s32)((u32)target_texture_data - (u32)icon_tex);
-        icon_tex->offset = desired_offset;
-        icon_tex->format = GX_TF_RGB5A3;
-        icon_tex->width = 96;
-        icon_tex->height = 32;
+            s32 desired_offset = (s32)((u32)target_texture_data - (u32)icon_tex);
+            icon_tex->offset = desired_offset;
+            icon_tex->format = GX_TF_RGB5A3;
+            icon_tex->width = 32;
+            icon_tex->height = 32;
+        } else {
+            // u32 target_texture_data = (u32)assets[index].icon_rgb5;
+            // u16 *source_texture_data = (u16*)assets[0].banner.pixelData;
+            u16 *source_texture_data = (u16*)asset->banner.pixelData;
+            u32 target_texture_data = (u32)source_texture_data;
+
+            s32 desired_offset = (s32)((u32)target_texture_data - (u32)icon_tex);
+            icon_tex->offset = desired_offset;
+            icon_tex->format = GX_TF_RGB5A3;
+            icon_tex->width = 96;
+            icon_tex->height = 32;
+        }
 
         // TODO: instead set m->data->mat[1].texmap_index[0] = 0xFFFF
         draw_partial(m, &m->data->parts[6]);
@@ -483,15 +514,28 @@ __attribute_used__ void custom_gameselect_menu(u8 broken_alpha_0, u8 alpha_1, u8
         draw_blob_text(make_type('t','i','t','l'), menu_blob, &white, asset->banner.desc->fullGameName, 0x1f);
         draw_blob_text(make_type('i','n','f','o'), menu_blob, &white, asset->banner.desc->description, 0x1f);
 
-        // game source
         switch_lang_eng();
-        draw_blob_border(make_type('f','r','m','c'), menu_blob, &white);
-        draw_text("ISO", 20, 125, 540, &white);
+        if (is_dol_slot(selected_slot)) {
+            // game source
+            switch_lang_eng();
+            draw_blob_border(make_type('f','r','m','c'), menu_blob, &white);
+            draw_text("DOL", 20, 125, 540, &white);
 
-        // banner image
-        setup_tex_draw(1, 0, 1);
-        banner_texture.offset = (s32)((u32)(asset->banner.pixelData) - (u32)&banner_texture);
-        draw_blob_tex(make_type('b','a','n','a'), menu_blob, &white, &banner_texture);
+            // icon image
+            setup_tex_draw(1, 0, 1);
+            icon_texture.offset = (s32)((u32)&dol_tex_bin[0] - (u32)&icon_texture);
+            draw_blob_tex(make_type('i','c','0','0'), menu_blob, &white, &icon_texture);
+        } else {
+            // game source
+            switch_lang_eng();
+            draw_blob_border(make_type('f','r','m','c'), menu_blob, &white);
+            draw_text("ISO", 20, 125, 540, &white);
+
+            // banner image
+            setup_tex_draw(1, 0, 1);
+            banner_texture.offset = (s32)((u32)(asset->banner.pixelData) - (u32)&banner_texture);
+            draw_blob_tex(make_type('b','a','n','a'), menu_blob, &white, &banner_texture);
+        }
         switch_lang_orig();
     }
 
@@ -507,19 +551,18 @@ __attribute_used__ void original_gameselect_menu(u8 broken_alpha_0, u8 alpha_1, 
     if (asset->game_id[3] == 'J') switch_lang_jpn();
     else switch_lang_eng();
 
-    // game banner
-    setup_tex_draw(1, 0, 1);
-    banner_texture.offset = (s32)((u32)(asset->banner.pixelData) - (u32)&banner_texture);
-    draw_blob_tex(make_type('b','a','n','a'), game_blob_b, &white, &banner_texture);
+    if (!is_dol_slot(selected_slot)) {
+        // game banner
+        setup_tex_draw(1, 0, 1);
+        banner_texture.offset = (s32)((u32)(asset->banner.pixelData) - (u32)&banner_texture);
+        draw_blob_tex(make_type('b','a','n','a'), game_blob_b, &white, &banner_texture);
+    }
 
     // game info
     prep_text_mode();
     draw_blob_text(make_type('t','i','t','l'), game_blob_b, &white, asset->banner.desc->fullGameName, 0x40);
     draw_blob_text(make_type('m','a','k','r'), game_blob_b, &white, asset->banner.desc->fullCompany, 0x40);
     draw_blob_text_long(make_type('i','n','f','o'), game_blob_b, &white, asset->banner.desc->description, 0x80);
-
-    // // banner and info
-    // draw_start_info(ui_alpha); // this actually still works
 
     // press start anim
     draw_start_anim(ui_alpha); // TODO: fix alpha timing

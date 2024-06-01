@@ -45,3 +45,5 @@
 
 `NTSC 480p on PAL IPLs` credit to Nintendont (terrible workaround I know) <br/>
 `NTSC 480p on PAL IPLs` credit to swiss-gc (Fix logo animation speed) <br/>
+
+So much code was taken from the zeldaret/tp and projectPiki/pikmin2 decomps.
