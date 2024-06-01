@@ -1,5 +1,5 @@
 
-#define TEST_IPL_PATH "/gc-ntsc-10.bin"
+// #define TEST_IPL_PATH "/gc-ntsc-10.bin"
 // #define FORCE_IPL_LOAD
 // #define TEST_SKIP_ANIMATION
 // #define DOLPHIN_DELAY_ENABLE
@@ -28,7 +28,7 @@
 #define VIDEO_ENABLE
 // #define CONSOLE_ENABLE
 
-#define GECKO_PRINT_ENABLE
+// #define GECKO_PRINT_ENABLE
 // #define DOLPHIN_PRINT_ENABLE
 
 // #define PRINT_PATCHES
