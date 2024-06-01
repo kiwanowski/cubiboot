@@ -17,7 +17,6 @@
 #include "gc_dvd.h"
 #include "filebrowser.h"
 
-#include "boot.h"
 #include "dol.h"
 
 #define CUBE_TEX_WIDTH 84
