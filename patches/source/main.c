@@ -534,7 +534,7 @@ __attribute_used__ void bs2start() {
         lowmem->b_physical_memory_size = 0x01800000;
 
         // set video mode PAL
-        if (rmode->viTVMode >> 2 == VI_PAL)
+        if (rmode->viTVMode >> 2 != VI_NTSC)
             lowmem->tv_mode = 1;
 
         dvd_read(&lowmem->b_disk_info, 0x20, 0);

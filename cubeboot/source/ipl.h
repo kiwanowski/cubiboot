@@ -3,6 +3,11 @@
 #define CRC(x) x
 #define SDA(x) x
 
+typedef enum ipl_types {
+    IPL_NTSC,
+    IPL_PAL,
+} ipl_types;
+
 typedef enum ipl_version {
     IPL_NTSC_10,
     IPL_NTSC_11,
@@ -15,6 +20,7 @@ typedef enum ipl_version {
 
 typedef struct {
     ipl_version version;
+    ipl_types type;
     char *name;
     char *reloc_prefix;
     char *patch_suffix;
