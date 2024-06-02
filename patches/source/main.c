@@ -17,6 +17,7 @@
 #include "gc_dvd.h"
 #include "filebrowser.h"
 
+#include "video.h"
 #include "dol.h"
 
 #define CUBE_TEX_WIDTH 84
@@ -492,6 +493,12 @@ __attribute_used__ void bs2start() {
     DCFlushRange((void*)start_addr, len);
     ICInvalidateRange((void*)start_addr, len);
 
+    // read boot info into lowmem
+    struct dolphin_lowmem *lowmem = (struct dolphin_lowmem*)0x80000000;
+    lowmem->a_boot_magic = 0x0D15EA5E;
+    lowmem->a_version = 0x00000001;
+    lowmem->b_physical_memory_size = 0x01800000;
+
     // only load the apploader if the boot path is not a .dol file
     extern int strncmpci(const char * str1, const char * str2, size_t num);
     if (strncmpci(boot_path + strlen(boot_path) - 4, ".dol", 4) == 0 || strncmpci(boot_path + strlen(boot_path) - 8, ".dol+cli", 8) == 0) {
@@ -527,19 +534,29 @@ __attribute_used__ void bs2start() {
 
         prog_entrypoint = hdr->entryPoint;
     } else {
-        // read boot info into lowmem
-        struct dolphin_lowmem *lowmem = (struct dolphin_lowmem*)0x80000000;
-        lowmem->a_boot_magic = 0x0D15EA5E;
-        lowmem->a_version = 0x00000001;
-        lowmem->b_physical_memory_size = 0x01800000;
-
-        // set video mode PAL
-        if (rmode->viTVMode >> 2 != VI_NTSC)
-            lowmem->tv_mode = 1;
-
         dvd_read(&lowmem->b_disk_info, 0x20, 0);
 
         prog_entrypoint = (u32)LoadGame_Apploader();
+    }
+
+    if (lowmem->b_disk_info.game_code[3] == 'P') {
+        OSReport("PAL game detected\n");
+        ogc__VIInit(VI_TVMODE_PAL_INT);
+
+        // set video mode PAL
+        u32 mode = rmode->viTVMode >> 2;
+        if (mode == VI_PAL || mode == VI_MPAL) {
+            if (mode == VI_MPAL) {
+                lowmem->tv_mode = 5;
+            } else {
+                lowmem->tv_mode = 1;
+            }
+        }
+    } else {
+        OSReport("NTSC game detected\n");
+        ogc__VIInit(VI_TVMODE_NTSC_INT);
+
+        lowmem->tv_mode = 0;
     }
 
     custom_OSReport("booting... (%08x)\n", prog_entrypoint);
