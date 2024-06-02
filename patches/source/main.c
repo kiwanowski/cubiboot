@@ -18,6 +18,7 @@
 #include "filebrowser.h"
 
 #include "dol.h"
+#include "boot.h"
 
 #define CUBE_TEX_WIDTH 84
 #define CUBE_TEX_HEIGHT 84
@@ -55,7 +56,7 @@ __attribute_data__ u64 completed_time = 0;
 // used to start game
 __attribute_reloc__ u32 (*PADSync)();
 __attribute_reloc__ void (*__OSStopAudioSystem)();
-__attribute_reloc__ void (*run)(register void* entry_point, register u32 clear_start, register u32 clear_size);
+// __attribute_reloc__ void (*run)(register void* entry_point, register u32 clear_start, register u32 clear_size);
 
 // for setup
 __attribute_reloc__ void (*orig_thread_init)();
@@ -392,68 +393,11 @@ __attribute_used__ u32 bs2tick() {
     return STATE_NO_DISC;
 }
 
-__attribute__((aligned(32))) static u8 apploader_buf[0x20];
-void* LoadGame_Apploader() {
-    // variables
-    int err;
-    void *buffer = &apploader_buf[0];
-    void (*app_init)(void (*report)(const char *fmt, ...));
-    int (*app_main)(void **dst, int *size, int *offset);
-    void *(*app_final)();
-    void (*app_entry)(void(**init)(void (*report)(const char *fmt, ...)), int (**main)(void**,int*,int*), void *(**final)());
-
-    // // disable interrupts
-    // u32 msr;
-    // msr = GetMSR();
-    // msr &= ~0x8000;
-    // msr |= 0x2002;
-    // SetMSR(msr);
-
-    // start disc drive & read apploader
-    err = dvd_read(buffer,0x20,0x2440);
-    if (err) {
-        OSReport("Could not load apploader header\n");
-        while(1);
-    }
-    err = dvd_read((void*)0x81200000,((*(unsigned long*)((u32)buffer+0x14)) + 31) &~31,0x2460);
-    if (err) {
-        OSReport("Could not load apploader data\n");
-        while(1);
-    }
-
-    // run apploader
-    app_entry = (void (*)(void(**)(void(*)(const char*,...)),int(**)(void**,int*,int*),void*(**)()))(*(unsigned long*)((u32)buffer + 0x10));
-    app_entry(&app_init,&app_main,&app_final);
-    app_init((void(*)(const char*,...))&custom_OSReport);
-    for (;;)
-    {
-        void *dst = 0;
-        int len = 0,offset = 0;
-        int res = app_main(&dst,&len,&offset);
-		custom_OSReport("res = %d\n", res);
-        if (!res) break;
-        err = dvd_read(dst,len,offset);
-        if (err) {
-            custom_OSReport("Apploader read failed\n");
-            while(1);
-        }
-        DCFlushRange(dst,len);
-    }
-	custom_OSReport("GOT ENTRY\n");
-
-    void* entrypoint = app_final();
-    custom_OSReport("THIS ENTRY, %p\n", entrypoint);
-    return entrypoint;
-}
-
 extern char boot_path[];
 
 __attribute__((aligned(32))) static DOLHEADER dol_hdr;
 __attribute_used__ void bs2start() {
     OSReport("DONE\n");
-
-    // iwrite32((u32)&stop_loading_games, 1);
-    // sync_after_write(&stop_loading_games, 4);
 
     OSReport("Waiting for file enum\n");
     OSLockMutex(game_enum_mutex);
@@ -476,77 +420,91 @@ __attribute_used__ void bs2start() {
     OSReport("we are about to open %s\n", boot_path);
     // udelay(100 * 1000);
 
-    int ret = dvd_custom_open(IPC_DEVICE_SD, boot_path, FILE_ENTRY_TYPE_FILE, 0);
-    OSReport("OPEN ret: %08x\n", ret);
-    (void)ret;
+    // no IPL code should be running after this point
 
     while (!PADSync());
     OSDisableInterrupts();
     __OSStopAudioSystem();
 
     u32 start_addr = 0x80100000;
-    u32 end_addr = 0x81300000;
+    u32 end_addr = 0x81600000;
     u32 len = end_addr - start_addr;
 
     memset((void*)start_addr, 0, len); // cleanup
     DCFlushRange((void*)start_addr, len);
     ICInvalidateRange((void*)start_addr, len);
 
+    bool boot_iso_file = false;
+
     // only load the apploader if the boot path is not a .dol file
     extern int strncmpci(const char * str1, const char * str2, size_t num);
     if (strncmpci(boot_path + strlen(boot_path) - 4, ".dol", 4) == 0 || strncmpci(boot_path + strlen(boot_path) - 8, ".dol+cli", 8) == 0) {
         custom_OSReport("Booting DOL\n");
 
-        // file_status_t file_status;
-        // dvd_custom_status(IPC_DEVICE_SD, &file_status);
-        // u64 dol_size = file_status.fsize;
-        // custom_OSReport("DOL size: %x\n", dol_size);
-
-        DOLHEADER *hdr = &dol_hdr;
-        dvd_read(hdr, sizeof(DOLHEADER), 0);
-
-        // Inspect text sections to see if what we found lies in here
-        for (int i = 0; i < MAXTEXTSECTION; i++) {
-            if (hdr->textAddress[i] && hdr->textLength[i]) {
-                dvd_read((void*)hdr->textAddress[i], hdr->textLength[i], hdr->textOffset[i]);
-            }
-        }
-
-        // Inspect data sections (shouldn't really need to unless someone was sneaky..)
-        for (int i = 0; i < MAXDATASECTION; i++) {
-            if (hdr->dataAddress[i] && hdr->dataLength[i]) {
-                dvd_read((void*)hdr->dataAddress[i], hdr->dataLength[i], hdr->dataOffset[i]);
-            }
-        }
-
-        custom_OSReport("Copy done...\n");
-
-        // Clear BSS
-        // TODO: check if this overlaps with IPL
-        memset((void*)hdr->bssAddress, 0, hdr->bssLength);
-
-        prog_entrypoint = hdr->entryPoint;
+        int ret = dvd_custom_open(IPC_DEVICE_SD, boot_path, FILE_ENTRY_TYPE_FILE, 0);
+        custom_OSReport("OPEN ret: %08x\n", ret);
+        (void)ret;
     } else {
-        // read boot info into lowmem
-        struct dolphin_lowmem *lowmem = (struct dolphin_lowmem*)0x80000000;
-        lowmem->a_boot_magic = 0x0D15EA5E;
-        lowmem->a_version = 0x00000001;
-        lowmem->b_physical_memory_size = 0x01800000;
+        custom_OSReport("Booting ISO (chainload)\n");
 
-        // set video mode PAL
-        if (rmode->viTVMode >> 2 != VI_NTSC)
-            lowmem->tv_mode = 1;
+        // int ret = dvd_custom_open(IPC_DEVICE_FLASH, boot_path, FILE_ENTRY_TYPE_FILE, 0);
+        // custom_OSReport("OPEN ret: %08x\n", ret);
+        // (void)ret;
 
-        dvd_read(&lowmem->b_disk_info, 0x20, 0);
+        int ret = dvd_custom_open(IPC_DEVICE_SD, "/chainload.dol", FILE_ENTRY_TYPE_FILE, 0);
+        custom_OSReport("OPEN ret: %08x\n", ret);
+        (void)ret;
 
-        prog_entrypoint = (u32)LoadGame_Apploader();
+        boot_iso_file = true;
     }
 
+    DOLHEADER *hdr = &dol_hdr;
+    dvd_read(hdr, sizeof(DOLHEADER), 0);
+
+    // Inspect text sections to see if what we found lies in here
+    for (int i = 0; i < MAXTEXTSECTION; i++) {
+        if (hdr->textAddress[i] && hdr->textLength[i]) {
+            dvd_read((void*)hdr->textAddress[i], hdr->textLength[i], hdr->textOffset[i]);
+        }
+    }
+
+    // Inspect data sections (shouldn't really need to unless someone was sneaky..)
+    for (int i = 0; i < MAXDATASECTION; i++) {
+        if (hdr->dataAddress[i] && hdr->dataLength[i]) {
+            dvd_read((void*)hdr->dataAddress[i], hdr->dataLength[i], hdr->dataOffset[i]);
+        }
+    }
+
+    custom_OSReport("Copy done...\n");
+
+    // Clear BSS
+    // TODO: check if this overlaps with IPL
+    memset((void*)hdr->bssAddress, 0, hdr->bssLength);
+    prog_entrypoint = hdr->entryPoint;
+
     custom_OSReport("booting... (%08x)\n", prog_entrypoint);
+    if (boot_iso_file) {
+        char *argz = (void*)DOLMax(hdr) + 32;
+        int argz_len = 0;
+
+        const char *arg0 = "cubeboot.dol";
+        int arg0_len = strlen(arg0) + 1;
+        memcpy(argz + argz_len, arg0, arg0_len);
+        argz_len += arg0_len;
+
+        int arg1_len = strlen(boot_path) + 1;
+        memcpy(argz + argz_len, boot_path, arg1_len);
+        argz_len += arg1_len;
+
+        struct __argv *args = (void*)(prog_entrypoint + 8);
+        args->argvMagic = ARGV_MAGIC;
+        args->commandLine = argz;
+        args->length = argz_len;
+    }
 
     // TODO: copy a DCZeroRange routine to 0x81200000 instead (like sidestep)
     void (*entry)(void) = (void(*)(void))prog_entrypoint;
-    run(entry, 0x81300000, 0x20000);
+    run(entry);
 
     __builtin_unreachable();
 }

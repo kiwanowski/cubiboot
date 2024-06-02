@@ -31,8 +31,6 @@
 #include <ogc/lwp_watchdog.h>
 #include <ogc/machine/processor.h>
 #include "gc_dvd.h"
-#include "dolphin_os.h"
-#include "reloc.h"
 
 #define DVD_DI_MODE (1 << 2)
 #define DVD_DI_DMA (1 << 1)
@@ -96,7 +94,7 @@ int dvd_custom_open(ipc_device_type_t device, char *path, uint8_t type, uint8_t 
     entry.type = type;
     entry.flags = flags;
 
-    custom_OSReport("SD Opening: %s\n", entry.name);
+    kprintf("SD Opening: %s\n", entry.name);
 
     DCFlushRange(&entry, sizeof(file_entry_t));
 
@@ -110,7 +108,7 @@ int dvd_custom_open(ipc_device_type_t device, char *path, uint8_t type, uint8_t 
     dvd[7] = (DVD_DI_MODE|DVD_DI_DMA|DVD_DI_START);
     while (dvd[7] & 1) {
         if (ticks_to_millisecs(gettime()) % 1000 == 0)
-            custom_OSReport("Still reading: %u/%u\n", (u32)dvd[6], sizeof(file_entry_t));
+            kprintf("Still reading: %u/%u\n", (u32)dvd[6], sizeof(file_entry_t));
     }
 
     if (dvd[0] & 0x4)
@@ -125,7 +123,7 @@ int dvd_threaded_custom_open(ipc_device_type_t device, char *path, uint8_t type,
     entry.type = type;
     entry.flags = flags;
 
-    custom_OSReport("SD Opening: %s\n", entry.name);
+    kprintf("SD Opening: %s\n", entry.name);
 
     DCFlushRange(&entry, sizeof(file_entry_t));
 
@@ -148,7 +146,7 @@ int dvd_custom_unlink(ipc_device_type_t device, char *path)
 {
     strcpy(entry.name, path);
 
-    custom_OSReport("DVD Unlinking: %s\n", entry.name);
+    kprintf("DVD Unlinking: %s\n", entry.name);
 
     DCFlushRange(&entry, sizeof(file_entry_t));
 
@@ -163,7 +161,7 @@ int dvd_custom_unlink(ipc_device_type_t device, char *path)
     while (dvd[7] & 1)
     {
         if (ticks_to_millisecs(gettime()) % 1000 == 0)
-            custom_OSReport("Still reading: %u/%u\n", (u32)dvd[6], sizeof(file_entry_t));
+            kprintf("Still reading: %u/%u\n", (u32)dvd[6], sizeof(file_entry_t));
     }
 
     if (dvd[0] & 0x4)

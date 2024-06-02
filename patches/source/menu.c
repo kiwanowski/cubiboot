@@ -451,7 +451,6 @@ __attribute_used__ void custom_gameselect_menu(u8 broken_alpha_0, u8 alpha_1, u8
     draw_text("cubeboot loader", 20, 20, 4, &white);
 
     // icons
-    int draw_count = 0;
     for (int pass = 0; pass < 2; pass++) {
         for (int line_num = 0; line_num < number_of_lines; line_num++) {
             line_backing_t *line_backing = &browser_lines[line_num];
@@ -486,7 +485,6 @@ __attribute_used__ void custom_gameselect_menu(u8 broken_alpha_0, u8 alpha_1, u8
                         pos->m[1][3] = real_position_y;
                     }
                     draw_save_icon(pos, slot_num, alpha_1, selected, has_texture);
-                    draw_count++;
 
                     C_MTXIdentity(pos->m);
                     pos->m[0][3] = saved_x; // reset x
@@ -496,8 +494,6 @@ __attribute_used__ void custom_gameselect_menu(u8 broken_alpha_0, u8 alpha_1, u8
             }
         }
     }
-
-    OSReport("draw count: %d\n", draw_count);
 
     // arrows
     fix_gameselect_view();
@@ -624,7 +620,7 @@ __attribute_used__ s32 handle_gameselect_inputs() {
 
     // TODO: only works with numbers that do not divide into 255 (switch to floats?)
     u8 transition_step = 14;
-    if (rmode->viTVMode >> 2 != VI_NTSC) transition_step = 18;
+    if (rmode->viTVMode >> 2 != VI_NTSC) transition_step = 16;
     if (in_submenu_transition) {
         if (custom_menu_transition_alpha != 0 && original_menu_transition_alpha != 0) {
             if ((255 - custom_menu_transition_alpha) < transition_step || (255 - original_menu_transition_alpha) < transition_step) {
