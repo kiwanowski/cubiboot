@@ -206,20 +206,27 @@ const char *get_game_path(int backing_index) {
 static int early_file_enum() {
     u64 start_time = gettime();
 
-    // dvd_custom_open("/", FILE_ENTRY_TYPE_DIR, IPC_FILE_FLAG_DISABLECACHE | IPC_FILE_FLAG_DISABLEFASTSEEK); // reset readdir
+    int res = dvd_custom_open("/", FILE_ENTRY_TYPE_DIR, 0);
+    if (res != 0) {
+        OSReport("PANIC: SD Card could not be opened\n");
+        while(1);
+    }
 
-    // // // TODO: fallback to WiFi
-    // file_status_t *status = dvd_custom_status();
-    // if (status->result != 0) {
-    //     OSReport("PANIC: SD Card could not be opened\n");
-    //     while(1);
-    // }
+    // // TODO: fallback to WiFi
+    file_status_t *status = dvd_custom_status();
+    if (status->result != 0) {
+        OSReport("PANIC: SD Card could not be opened\n");
+        while(1);
+    }
+
+    uint8_t dir_fd = status->fd;
+    OSReport("found readdir fd=%u\n", dir_fd);
 
     static GCN_ALIGNED(file_entry_t) ent;
     int current_ent_index = 0;
     int ret = 0;
     while(1) {
-        ret = dvd_custom_readdir(&ent, 0);
+        ret = dvd_custom_readdir(&ent, dir_fd);
         if (ret != 0) weird_panic();
         if (ent.name[0] == 0)
             break;
@@ -427,9 +434,6 @@ void start_file_enum() {
     u32 thread_stack_size = sizeof(thread_stack);
     void *thread_stack_top = thread_stack + thread_stack_size;
     s32 thread_priority = DEFAULT_THREAD_PRIO + 3;
-
-    file_test();
-    while(1);
 
     OSInitMutex(game_enum_mutex);
 
