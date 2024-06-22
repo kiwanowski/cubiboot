@@ -1,3 +1,157 @@
+#include "flippy_sync.h"
+#include "reloc.h"
+
+#include "dolphin_os.h"
+#include "video.h"
+
+#include "picolibc.h"
+#include "boot.h"
+#include "dol.h"
+
+__attribute__((aligned(32))) static DOLHEADER dol_hdr;
+dol_info_t load_dol(char *path, bool flash) {
+    uint8_t flags = IPC_FILE_FLAG_DISABLECACHE | IPC_FILE_FLAG_DISABLEFASTSEEK | IPC_FILE_FLAG_DISABLESPEEDEMU;
+    if (flash) {
+        dvd_custom_open_flash(path, FILE_ENTRY_TYPE_FILE, flags);
+    } else {
+        dvd_custom_open(path, FILE_ENTRY_TYPE_FILE, flags);
+    }
+
+    file_status_t *file_status = dvd_custom_status();
+    if (file_status == NULL || file_status->result != 0) {
+        custom_OSReport("Failed to open file %s\n", path);
+        return (dol_info_t){0, 0};
+    }
+
+    DOLHEADER *hdr = &dol_hdr;
+    dvd_read(hdr, sizeof(DOLHEADER), 0, file_status->fd);
+
+    // Inspect text sections to see if what we found lies in here
+    for (int i = 0; i < MAXTEXTSECTION; i++) {
+        if (hdr->textAddress[i] && hdr->textLength[i]) {
+            dvd_read((void*)hdr->textAddress[i], hdr->textLength[i], hdr->textOffset[i], file_status->fd);
+        }
+    }
+
+    // Inspect data sections (shouldn't really need to unless someone was sneaky..)
+    for (int i = 0; i < MAXDATASECTION; i++) {
+        if (hdr->dataAddress[i] && hdr->dataLength[i]) {
+            dvd_read((void*)hdr->dataAddress[i], hdr->dataLength[i], hdr->dataOffset[i], file_status->fd);
+        }
+    }
+
+    custom_OSReport("Copy done...\n");
+
+    // Clear BSS
+    // TODO: check if this overlaps with IPL
+    memset((void*)hdr->bssAddress, 0, hdr->bssLength);
+    void *entrypoint = (void*)hdr->entryPoint;
+    u32 dol_max = DOLMax(hdr);
+
+    dol_info_t info = {dol_max, entrypoint};
+    return info;
+}
+
+void chainload_boot_game(char *boot_path) {
+    // read boot info into lowmem
+    struct dolphin_lowmem *lowmem = (struct dolphin_lowmem*)0x80000000;
+    lowmem->a_boot_magic = 0x0D15EA5E;
+    lowmem->a_version = 0x00000001;
+    lowmem->b_physical_memory_size = 0x01800000;
+
+    dvd_read(&lowmem->b_disk_info, 0x20, 0, 0);
+
+    void *entrypoint = load_apploader();
+
+    struct gcm_disk_header_info *bi2 = lowmem->a_bi2;
+
+    OSReport("BI2: %08x\n", bi2);
+    OSReport("Country: %x\n", bi2->country_code);
+
+    // game id
+    OSReport("Game ID: %c%c%c%c\n", lowmem->b_disk_info.game_code[0], lowmem->b_disk_info.game_code[1], lowmem->b_disk_info.game_code[2], lowmem->b_disk_info.game_code[3]);
+
+    if (bi2->country_code == COUNTRY_EUR) {
+        OSReport("PAL game detected\n");
+        ogc__VIInit(VI_TVMODE_PAL_INT);
+
+        // set video mode PAL
+        u32 mode = rmode->viTVMode >> 2;
+        if (mode == VI_MPAL) {
+            lowmem->tv_mode = 5;
+        } else {
+            lowmem->tv_mode = 1;
+        }
+    } else {
+        OSReport("NTSC game detected\n");
+        ogc__VIInit(VI_TVMODE_NTSC_INT);
+
+        lowmem->tv_mode = 0;
+    }
+
+    custom_OSReport("booting... (%08x)\n", (u32)entrypoint);
+
+    // TODO: copy a DCZeroRange routine to 0x81200000 instead (like sidestep)
+
+    // run the game
+    run(entrypoint);
+    __builtin_unreachable();
+}
+
+__attribute__((aligned(32))) static u8 apploader_buf[0x20];
+void* load_apploader() {
+    // variables
+    int err;
+    void *buffer = &apploader_buf[0];
+    void (*app_init)(void (*report)(const char *fmt, ...));
+    int (*app_main)(void **dst, int *size, int *offset);
+    void *(*app_final)();
+    void (*app_entry)(void(**init)(void (*report)(const char *fmt, ...)), int (**main)(void**,int*,int*), void *(**final)());
+
+    // // disable interrupts
+    // u32 msr;
+    // msr = GetMSR();
+    // msr &= ~0x8000;
+    // msr |= 0x2002;
+    // SetMSR(msr);
+
+    // start disc drive & read apploader
+    err = dvd_read(buffer,0x20,0x2440, 0);
+    if (err) {
+        OSReport("Could not load apploader header\n");
+        while(1);
+    }
+    err = dvd_read((void*)0x81200000,((*(unsigned long*)((u32)buffer+0x14)) + 31) &~31,0x2460, 0);
+    if (err) {
+        OSReport("Could not load apploader data\n");
+        while(1);
+    }
+
+    // run apploader
+    app_entry = (void (*)(void(**)(void(*)(const char*,...)),int(**)(void**,int*,int*),void*(**)()))(*(unsigned long*)((u32)buffer + 0x10));
+    app_entry(&app_init,&app_main,&app_final);
+    app_init((void(*)(const char*,...))&custom_OSReport);
+    for (;;)
+    {
+        void *dst = 0;
+        int len = 0,offset = 0;
+        int res = app_main(&dst,&len,&offset);
+		custom_OSReport("res = %d\n", res);
+        if (!res) break;
+        err = dvd_read(dst,len,offset,0);
+        if (err) {
+            custom_OSReport("Apploader read failed\n");
+            while(1);
+        }
+        DCFlushRange(dst,len);
+    }
+	custom_OSReport("GOT ENTRY\n");
+
+    void* entrypoint = app_final();
+    custom_OSReport("THIS ENTRY, %p\n", entrypoint);
+    return entrypoint;
+}
+
 void run(register void* entry_point) {
     // ICFlashInvalidate
     asm("mfhid0	4");

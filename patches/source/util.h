@@ -11,7 +11,6 @@
 void C_MTXIdentity(Mtx mtx);
 void C_MTXCopy(Mtx src, Mtx dst);
 
-extern void *memset (void *m, int c, size_t n);
 extern void DCFlushRange(void *addr, u32 nBytes);
 
 typedef union rgb_color {

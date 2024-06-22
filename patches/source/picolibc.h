@@ -24,6 +24,7 @@ int sprintf(char* s, const char* format, ...);
 
 void *memmove(void *dst, const void *src, size_t length);
 void *memcpy(void* dst, const void* src, size_t count);
+void *memset (void *m, int c, size_t n);
 char *strcat (char *__restrict s1, const char *__restrict s2);
 char *strncpy (char *dst0, const char *src0, size_t count);
 char *strcpy (char *dst0, const char *src0);

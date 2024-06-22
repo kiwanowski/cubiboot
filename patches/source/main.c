@@ -396,7 +396,6 @@ __attribute_used__ u32 bs2tick() {
 
 extern char boot_path[];
 
-__attribute__((aligned(32))) static DOLHEADER dol_hdr;
 __attribute_used__ void bs2start() {
     OSReport("DONE\n");
 
@@ -441,69 +440,32 @@ __attribute_used__ void bs2start() {
     lowmem->a_version = 0x00000001;
     lowmem->b_physical_memory_size = 0x01800000;
 
-    bool boot_iso_file = false;
+    // TODO: use the filebrowser to get the game path
 
     // only load the apploader if the boot path is not a .dol file
     extern int strncmpci(const char * str1, const char * str2, size_t num);
-    if (strncmpci(boot_path + strlen(boot_path) - 4, ".dol", 4) == 0 || strncmpci(boot_path + strlen(boot_path) - 8, ".dol+cli", 8) == 0) {
+    bool boot_dol_file = strncmpci(boot_path + strlen(boot_path) - 4, ".dol", 4) == 0 || strncmpci(boot_path + strlen(boot_path) - 8, ".dol+cli", 8) == 0;
+
+    if (boot_dol_file) {
         custom_OSReport("Booting DOL\n");
 
-        int ret = dvd_custom_open(boot_path, FILE_ENTRY_TYPE_FILE, 0);
-        custom_OSReport("OPEN ret: %08x\n", ret);
-        (void)ret;
+        dol_info_t info = load_dol(boot_path, false);
+        run(info.entrypoint);
     } else {
         custom_OSReport("Booting ISO (chainload)\n");
 
         // TODO: switch to flash
-        int ret = dvd_custom_open("/swiss.dol", FILE_ENTRY_TYPE_FILE, 0);
-        custom_OSReport("OPEN ret: %08x\n", ret);
-        (void)ret;
+        dol_info_t info = load_dol("/swiss.dol", false);
 
-        boot_iso_file = true;
-    }
-
-    file_status_t *file_status = dvd_custom_status();
-    // TODO check for error
-    // if (file_status->result != 0) {...}
-    // dvd_set_default_fd(file_status->fd);
-
-    DOLHEADER *hdr = &dol_hdr;
-    dvd_read(hdr, sizeof(DOLHEADER), 0, file_status->fd);
-
-    // Inspect text sections to see if what we found lies in here
-    for (int i = 0; i < MAXTEXTSECTION; i++) {
-        if (hdr->textAddress[i] && hdr->textLength[i]) {
-            dvd_read((void*)hdr->textAddress[i], hdr->textLength[i], hdr->textOffset[i], file_status->fd);
-        }
-    }
-
-    // Inspect data sections (shouldn't really need to unless someone was sneaky..)
-    for (int i = 0; i < MAXDATASECTION; i++) {
-        if (hdr->dataAddress[i] && hdr->dataLength[i]) {
-            dvd_read((void*)hdr->dataAddress[i], hdr->dataLength[i], hdr->dataOffset[i], file_status->fd);
-        }
-    }
-
-    custom_OSReport("Copy done...\n");
-
-    // Clear BSS
-    // TODO: check if this overlaps with IPL
-    memset((void*)hdr->bssAddress, 0, hdr->bssLength);
-    prog_entrypoint = hdr->entryPoint;
-
-    custom_OSReport("booting... (%08x)\n", prog_entrypoint);
-    if (boot_iso_file) {
-        char *argz = (void*)DOLMax(hdr) + 32;
+        char *argz = (void*)info.max_addr + 32;
         int argz_len = 0;
-
-        const char *arg0 = "swiss-novideo.dol";
 
         char autoload_arg[256];
         strcpy(autoload_arg, "Autoload=fldr:");
         strcat(autoload_arg, boot_path);
 
         const char *arg_list[] = {
-            arg0,
+            "swiss-novideo.dol", // this causes Swiss to SetBlack
             autoload_arg,
             "AutoBoot=Yes",
             "IGRType=Reboot",
@@ -528,11 +490,9 @@ __attribute_used__ void bs2start() {
 
         DCFlushRange(argz, argz_len);
         DCFlushRange(args, sizeof(struct __argv));
-    }
 
-    // TODO: copy a DCZeroRange routine to 0x81200000 instead (like sidestep)
-    void (*entry)(void) = (void(*)(void))prog_entrypoint;
-    run(entry);
+        run(info.entrypoint);
+    }
 
     __builtin_unreachable();
 }
