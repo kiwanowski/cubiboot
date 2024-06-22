@@ -39,7 +39,7 @@
 #include "gcm.h"
 #include "bnr.h"
 
-#include "gc_dvd.h"
+#include "flippy_sync.h"
 
 typedef struct {
     struct gcm_disk_header header;
@@ -169,7 +169,7 @@ int main() {
     if (check_load_program()) {
         can_load_dol = true;
     }
-#else
+#elif 0
     // dvd setup
     // DVDInit();
 
@@ -203,6 +203,10 @@ int main() {
         // postboot delay
         settings.postboot_delay_ms = 0;
     }
+#else
+    // setup settings
+    iprintf("Loading settings\n");
+    load_settings();
 #endif
 
 #if 0
@@ -406,6 +410,7 @@ int main() {
     set_patch_value(symshdr, syment, symstringdata, "cube_color", settings.cube_color);
     set_patch_value(symshdr, syment, symstringdata, "cube_text_tex", (u32)image_data);
     set_patch_value(symshdr, syment, symstringdata, "force_progressive", settings.progressive_enabled);
+    set_patch_value(symshdr, syment, symstringdata, "force_swiss_boot", settings.force_swiss_default);
 
     set_patch_value(symshdr, syment, symstringdata, "preboot_delay_ms", settings.preboot_delay_ms);
     set_patch_value(symshdr, syment, symstringdata, "postboot_delay_ms", settings.postboot_delay_ms);

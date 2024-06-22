@@ -34,9 +34,6 @@ endif
 PATCHES	:=	data/patches.elf
 PATCHES_PATH := $(PROJDIR)/$(PATCHES)
 
-CHAINLOAD :=	data/chainload.dol
-CHAINLOAD_PATH :=	$(PROJDIR)/$(CHAINLOAD)
-
 #---------------------------------------------------------------------------------
 # options for code generation
 #---------------------------------------------------------------------------------
@@ -111,7 +108,7 @@ export OUTPUT	:=	$(CURDIR)/$(TARGET)
 .PHONY: $(BUILD) clean
 
 #---------------------------------------------------------------------------------
-$(BUILD): $(PATCHES) $(CHAINLOAD)
+$(BUILD): $(PATCHES)
 	@[ -d $@ ] || mkdir -p $@
 	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
 
@@ -124,21 +121,14 @@ $(PATCHES):
 	@$(OBJCOPY) --remove-section .comment --remove-section .gnu.attributes $@
 
 #---------------------------------------------------------------------------------
-$(CHAINLOAD):
-	@[ -d $(DATA) ] || mkdir -p $(DATA)
-	@$(MAKE) --no-print-directory -C $(dir $(PROJDIR))/$(basename $(notdir $@))
-	@cp $(dir $(PROJDIR))/$(basename $(notdir $@))/$(notdir $@) $@
-
-#---------------------------------------------------------------------------------
 validate:
 	@env GO111MODULE=off go run $(PROJDIR)/scripts/validate-patches.go $(PATCHES) | grep -B1 'TARGET NOT FOUND' | grep Checking | cut -d'[' -f2 | tr -d ']' | sort
 
 #---------------------------------------------------------------------------------
 clean:
 	@$(MAKE) --no-print-directory -C $(dir $(PROJDIR))/$(basename $(notdir $(PATCHES))) clean
-	@$(MAKE) --no-print-directory -C $(dir $(PROJDIR))/$(basename $(notdir $(CHAINLOAD))) clean
 	@echo clean $(TARGET) ...
-	@rm -fr $(BUILD) $(PATCHES_PATH) $(CHAINLOAD_PATH) $(OUTPUT).elf $(OUTPUT).dol
+	@rm -fr $(BUILD) $(PATCHES_PATH) $(OUTPUT).elf $(OUTPUT).dol
 
 #---------------------------------------------------------------------------------
 else

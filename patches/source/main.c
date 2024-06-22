@@ -30,7 +30,6 @@
 #define STATE_COVER_OPEN 0x13 // force direct to menu
 
 #define TEST_ONLY_force_boot_menu 1
-#define TEST_ONLY_skip_animation 1
 
 __attribute_data__ u32 prog_entrypoint;
 __attribute_data__ u32 prog_dst;
@@ -42,6 +41,7 @@ __attribute_data__ u32 start_game = 0;
 
 __attribute_data__ u8 *cube_text_tex = NULL;
 __attribute_data__ u32 force_progressive = 0;
+__attribute_data__ u32 force_swiss_boot = 0;
 
 // __attribute_data__ static cubeboot_state local_state;
 // __attribute_data__ static cubeboot_state *global_state = (cubeboot_state*)0x81700000;
@@ -384,13 +384,14 @@ __attribute_used__ u32 bs2tick() {
     // }
 
 #ifdef TEST_SKIP_ANIMATION
-    if (TEST_ONLY_skip_animation) {
         return STATE_COVER_OPEN;
+        return STATE_COVER_OPEN;
+    }
+    return STATE_COVER_OPEN;
     }
 #endif
 
     // TODO: allow the user to decide if they want to logo to play
-    // return STATE_COVER_OPEN;
     return STATE_NO_DISC;
 }
 
@@ -441,8 +442,6 @@ __attribute_used__ void bs2start() {
     lowmem->b_physical_memory_size = 0x01800000;
 
     // TODO: use the filebrowser to get the game path
-    chainload_boot_game(boot_path);
-
     // only load the apploader if the boot path is not a .dol file
     extern int strncmpci(const char * str1, const char * str2, size_t num);
     bool boot_dol_file = strncmpci(boot_path + strlen(boot_path) - 4, ".dol", 4) == 0 || strncmpci(boot_path + strlen(boot_path) - 8, ".dol+cli", 8) == 0;
@@ -453,46 +452,56 @@ __attribute_used__ void bs2start() {
         dol_info_t info = load_dol(boot_path, false);
         run(info.entrypoint);
     } else {
-        custom_OSReport("Booting ISO (chainload)\n");
+        custom_OSReport("Booting ISO\n");
 
-        // TODO: switch to flash
-        dol_info_t info = load_dol("/swiss.dol", false);
+        prepare_game_lowmem(boot_path);
+        char *game_code = lowmem->b_disk_info.game_code;
+        bool is_tonyhawk_proskater4 = (game_code[0] == 'G' && game_code[0] == 'T' && game_code[0] == '4');
+        bool use_swiss = is_tonyhawk_proskater4 || force_swiss_boot;
 
-        char *argz = (void*)info.max_addr + 32;
-        int argz_len = 0;
+        if (use_swiss) {
+            custom_OSReport("Booting ISO (swiss chainload)\n");
 
-        char autoload_arg[256];
-        strcpy(autoload_arg, "Autoload=fldr:");
-        strcat(autoload_arg, boot_path);
+            dol_info_t info = load_dol("/swiss-gc.dol", true);
+            char *argz = (void*)info.max_addr + 32;
+            int argz_len = 0;
 
-        const char *arg_list[] = {
-            "swiss-novideo.dol", // this causes Swiss to SetBlack
-            autoload_arg,
-            "AutoBoot=Yes",
-            "IGRType=Reboot",
-            "BS2Boot=No",
-            "Prefer Clean Boot=No",
-            NULL
-        };
+            char autoload_arg[256];
+            strcpy(autoload_arg, "Autoload=fldr:");
+            strcat(autoload_arg, boot_path);
 
-        int arg_count = 0;
-        while(arg_list[arg_count] != NULL) {
-            const char *arg = arg_list[arg_count];
-            int arg_len = strlen(arg) + 1;
-            memcpy(argz + argz_len, arg, arg_len);
-            argz_len += arg_len;
-            arg_count++;
+            const char *arg_list[] = {
+                "swiss-novideo.dol", // this causes Swiss to SetBlack
+                autoload_arg,
+                "AutoBoot=Yes",
+                "IGRType=Reboot",
+                "BS2Boot=No",
+                "Prefer Clean Boot=No",
+                NULL
+            };
+
+            int arg_count = 0;
+            while(arg_list[arg_count] != NULL) {
+                const char *arg = arg_list[arg_count];
+                int arg_len = strlen(arg) + 1;
+                memcpy(argz + argz_len, arg, arg_len);
+                argz_len += arg_len;
+                arg_count++;
+            }
+
+            struct __argv *args = (void*)(prog_entrypoint + 8);
+            args->argvMagic = ARGV_MAGIC;
+            args->commandLine = argz;
+            args->length = argz_len;
+
+            DCFlushRange(argz, argz_len);
+            DCFlushRange(args, sizeof(struct __argv));
+
+            run(info.entrypoint);
+        } else {
+            custom_OSReport("Booting ISO (swiss apploader)\n");
+            chainload_boot_game(boot_path);
         }
-
-        struct __argv *args = (void*)(prog_entrypoint + 8);
-        args->argvMagic = ARGV_MAGIC;
-        args->commandLine = argz;
-        args->length = argz_len;
-
-        DCFlushRange(argz, argz_len);
-        DCFlushRange(args, sizeof(struct __argv));
-
-        run(info.entrypoint);
     }
 
     __builtin_unreachable();

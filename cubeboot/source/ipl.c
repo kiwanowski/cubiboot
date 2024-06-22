@@ -18,7 +18,7 @@
 #include "crc32.h"
 #include "ipl.h"
 
-#include "gc_dvd.h"
+#include "flippy_sync.h"
 
 extern GXRModeObj *rmode;
 extern void *xfb;
@@ -89,7 +89,7 @@ static bool valid = false;
 
 void load_ipl() {
     if (is_dolphin()) {
-        __SYS_ReadROM(bs2, bs2_size, BS2_CODE_OFFSET);
+        __SYS_ReadROM(bs2, bs2_size, BS2_CODE_OFFSET); // IPL is not encrypted on Dolphin
         iprintf("TEST IPL D, %08x\n", *(u32*)bs2);
     } else {
         iprintf("TEST IPL X\n");

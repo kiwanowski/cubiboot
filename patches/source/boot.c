@@ -53,6 +53,60 @@ dol_info_t load_dol(char *path, bool flash) {
     return info;
 }
 
+void prepare_game_lowmem(char *boot_path) {
+    // open file
+    dvd_custom_open(boot_path, FILE_ENTRY_TYPE_FILE, 0);
+    file_status_t *file_status = dvd_custom_status();
+    if (file_status == NULL || file_status->result != 0) {
+        custom_OSReport("Failed to open file %s\n", boot_path);
+        return;
+    }
+
+    struct dolphin_lowmem *lowmem = (struct dolphin_lowmem*)0x80000000;
+    dvd_read(&lowmem->b_disk_info, 0x20, 0, file_status->fd);
+    dvd_custom_close(file_status->fd);
+}
+
+// void chainload_boot_game(uint8_t fd) {
+//     dvd_set_default_fd(fd);
+//     void *entrypoint = load_apploader();
+
+//     struct dolphin_lowmem *lowmem = (struct dolphin_lowmem*)0x80000000;
+//     struct gcm_disk_header_info *bi2 = lowmem->a_bi2;
+
+//     custom_OSReport("BI2: %08x\n", bi2);
+//     custom_OSReport("Country: %x\n", bi2->country_code);
+
+//     // game id
+//     custom_OSReport("Game ID: %c%c%c%c\n", lowmem->b_disk_info.game_code[0], lowmem->b_disk_info.game_code[1], lowmem->b_disk_info.game_code[2], lowmem->b_disk_info.game_code[3]);
+
+//     if (bi2->country_code == COUNTRY_EUR) {
+//         custom_OSReport("PAL game detected\n");
+//         ogc__VIInit(VI_TVMODE_PAL_INT);
+
+//         // set video mode PAL
+//         u32 mode = rmode->viTVMode >> 2;
+//         if (mode == VI_MPAL) {
+//             lowmem->tv_mode = 5;
+//         } else {
+//             lowmem->tv_mode = 1;
+//         }
+//     } else {
+//         custom_OSReport("NTSC game detected\n");
+//         ogc__VIInit(VI_TVMODE_NTSC_INT);
+
+//         lowmem->tv_mode = 0;
+//     }
+
+//     custom_OSReport("booting... (%08x)\n", (u32)entrypoint);
+
+//     // TODO: copy a DCZeroRange routine to 0x81200000 instead (like sidestep)
+
+//     // run the game
+//     run(entrypoint);
+//     __builtin_unreachable();
+// }
+
 void chainload_boot_game(char *boot_path) {
     // read boot info into lowmem
     struct dolphin_lowmem *lowmem = (struct dolphin_lowmem*)0x80000000;
