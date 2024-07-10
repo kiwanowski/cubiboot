@@ -37,7 +37,7 @@
 // __attribute_data__ u32 prog_len;
 
 __attribute_data__ u32 cube_color = 0;
-__attribute_data__ u32 start_game = 0;
+// __attribute_data__ u32 start_game = 0;
 
 __attribute_data__ u8 *cube_text_tex = NULL;
 __attribute_data__ u32 force_progressive = 0;
@@ -448,6 +448,7 @@ __attribute_used__ void bs2start() {
 
     if (boot_dol_file) {
         custom_OSReport("Booting DOL\n");
+        load_stub();
 
         dol_info_t info = load_dol(boot_path, false);
         run(info.entrypoint);

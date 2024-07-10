@@ -8,6 +8,24 @@
 #include "boot.h"
 #include "dol.h"
 
+void load_stub() {
+    custom_OSReport("Loading stub...\n");
+    dvd_custom_open_flash("/stub.bin", FILE_ENTRY_TYPE_FILE, 0);
+    file_status_t *file_status = dvd_custom_status();
+    if (file_status == NULL || file_status->result != 0) {
+        custom_OSReport("Failed to open stub\n");
+        return;
+    }
+
+    u32 file_size = (u32)__builtin_bswap64(*(u64*)(&file_status->fsize));
+    file_size += 31;
+    file_size &= 0xffffffe0;
+
+    dvd_read((void*)0x80001800, file_size, 0, file_status->fd);
+    dvd_custom_close(file_status->fd);
+    return;
+}
+
 __attribute__((aligned(32))) static DOLHEADER dol_hdr;
 dol_info_t load_dol(char *path, bool flash) {
     uint8_t flags = IPC_FILE_FLAG_DISABLECACHE | IPC_FILE_FLAG_DISABLEFASTSEEK | IPC_FILE_FLAG_DISABLESPEEDEMU;

@@ -5,6 +5,7 @@ typedef struct {
     void *entrypoint;
 } dol_info_t;
 
+void load_stub();
 dol_info_t load_dol(char *path, bool flash);
 
 void *load_apploader();

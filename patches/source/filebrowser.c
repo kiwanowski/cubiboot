@@ -164,7 +164,7 @@ void __DVDFSInit_threaded(uint32_t fd, game_backing_entry_t *backing) {
 }
 
 bool is_dol_slot(int slot_num) {
-    game_backing_entry_t *backing = sorted_raw_game_backing_list[slot_num];
+    game_backing_entry_t *backing = game_backing_list[slot_num];
     if (backing != NULL) {
         return  backing->is_dol;
     }

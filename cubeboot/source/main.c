@@ -61,7 +61,7 @@ extern const void _start;
 extern const void _edata;
 extern const void _end;
 
-u32 can_load_dol = 0;
+// u32 can_load_dol = 0;
 
 void *xfb;
 GXRModeObj *rmode;
@@ -406,7 +406,7 @@ int main() {
     // set_patch_value(symshdr, syment, symstringdata, "prog_len", prog_len);
 
     // Copy settings into place
-    set_patch_value(symshdr, syment, symstringdata, "start_game", can_load_dol);
+    // set_patch_value(symshdr, syment, symstringdata, "start_game", can_load_dol);
     set_patch_value(symshdr, syment, symstringdata, "cube_color", settings.cube_color);
     set_patch_value(symshdr, syment, symstringdata, "cube_text_tex", (u32)image_data);
     set_patch_value(symshdr, syment, symstringdata, "force_progressive", settings.progressive_enabled);
