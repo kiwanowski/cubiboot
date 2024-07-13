@@ -2,6 +2,7 @@ pal11_PADSync = 0x81368b54;
 pal11_OSDisableInterrupts = 0x8135bb90;
 pal11___OSStopAudioSystem = 0x813594a0;
 pal11_run = 0x813007b8;
+pal11_VIWaitForRetrace = 0x81365f2c;
 
 pal11_main = 0x813004e4;
 pal11_cube_init = 0x813106dc;

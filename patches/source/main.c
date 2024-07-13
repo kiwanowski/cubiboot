@@ -275,8 +275,10 @@ __attribute_used__ void pre_menu_init(int unk) {
     mod_cube_anim();
 
     // delay before boot animation (to wait for GCVideo)
-    if (preboot_delay_ms) {
-        udelay(preboot_delay_ms * 1000);
+    const int fps = rmode->viTVMode >> 2 == VI_NTSC ? 60 : 50;
+    const int total_frames = preboot_delay_ms / fps;
+    for (int i = 0; i < total_frames; i++) {
+        VIWaitForRetrace();
     }
 }
 

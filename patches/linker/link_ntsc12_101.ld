@@ -2,6 +2,7 @@ ntsc12_101_PADSync = 0x8136fae4;
 ntsc12_101_OSDisableInterrupts = 0x8135ff68;
 ntsc12_101___OSStopAudioSystem = 0x8135ec60;
 ntsc12_101_run = 0x81300b08;
+ntsc12_101_VIWaitForRetrace = 0x8136caac;
 
 ntsc12_101_main = 0x81300838;
 ntsc12_101_cube_init = 0x81310b60;

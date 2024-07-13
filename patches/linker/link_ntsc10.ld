@@ -4,6 +4,7 @@ ntsc10_PADSync = 0x81341074;
 ntsc10_OSDisableInterrupts = 0x813361b0;
 ntsc10___OSStopAudioSystem = 0x81333b88;
 ntsc10_run = 0x813008c0;
+ntsc10_VIWaitForRetrace = 0x8133e1fc;
 
 ntsc10_main = 0x813006d4;
 ntsc10_menu_init = 0x8130ba90;

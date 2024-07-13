@@ -17,3 +17,4 @@ __attribute_reloc__ state *cube_state;
 
 // from menu
 __attribute_reloc__ u32 (*OSDisableInterrupts)();
+__attribute_reloc__ void (*VIWaitForRetrace)();

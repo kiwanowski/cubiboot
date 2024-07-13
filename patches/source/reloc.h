@@ -20,3 +20,4 @@ extern state *cube_state;
 
 // from menu
 extern u32 (*OSDisableInterrupts)();
+extern void (*VIWaitForRetrace)();

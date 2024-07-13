@@ -1,8 +1,3 @@
-/* debug: __OSGetSystemTime = 0x8136023c; */
-/* debug: __OSBusClock = 0x800000f8; */
-
-/* videomode: heap_init = 0x81307d90; */
-
 ntsc11_Jac_PlaySe = 0x813574a0;
 ntsc11_Jac_StopSoundAll = 0x81357600;
 
@@ -10,6 +5,7 @@ ntsc11_PADSync = 0x81368c34;
 ntsc11_OSDisableInterrupts = 0x8135bc70;
 ntsc11___OSStopAudioSystem = 0x81359580;
 ntsc11_run = 0x813007b8;
+ntsc11_VIWaitForRetrace = 0x8136600c;
 
 ntsc11_main = 0x813004e4;
 ntsc11_menu_init = 0x8130bc90;
