@@ -15,6 +15,7 @@
 #include "grid.h"
 #include "filebrowser.h"
 #include "util.h"
+#include "attr.h"
 #include "os.h"
 
 #include "flippy_sync.h"
@@ -30,6 +31,7 @@
 
 #define MAX_GCM_SIZE 0x57058000
 
+#if 0
 // default
 // favorites
 // alphabetical (optionally show letter?)
@@ -37,6 +39,7 @@
 int cmp_iso_path(const void* ptr_a, const void* ptr_b){
     const game_backing_entry_t *obj_a = *(game_backing_entry_t**)ptr_a;
     const game_backing_entry_t *obj_b = *(game_backing_entry_t**)ptr_b;
+
     return strcmp(obj_a->iso_path, obj_b->iso_path);
 }
 
@@ -46,8 +49,7 @@ game_backing_entry_t *sorted_raw_game_backing_list[2000];
 game_backing_entry_t *game_backing_list[2000];
 
 // bnr buffers for each game
-static game_asset_t (*game_assets)[64] = (void*)0x80100000;
-// static u8 compression_buffer[0x2000];
+__attribute_data_lowmem__ game_asset_t game_assets[64];
 
 int total_banner_size = 0;
 int total_compressed_size = 0;
@@ -172,7 +174,7 @@ bool is_dol_slot(int slot_num) {
 // a function that will allocate a new entry in the asset list
 game_asset_t *claim_game_asset() {
     for (int i = 0; i < 64; i++) {
-        game_asset_t *asset = &(*game_assets)[i];
+        game_asset_t *asset = &game_assets[i];
         if (!asset->in_use) {
             asset->in_use = 1;
             return asset;
@@ -192,7 +194,7 @@ void free_game_asset(int backing_index) {
 // a function that will get the current asset based on the backing index
 game_asset_t *get_game_asset(int backing_index) {
     for (int i = 0; i < 64; i++) {
-        game_asset_t *asset = &(*game_assets)[i];
+        game_asset_t *asset = &game_assets[i];
         if (asset->backing_index == backing_index && asset->in_use) {
             return asset;
         }
@@ -504,3 +506,5 @@ void start_file_enum() {
     dolphin_OSCreateThread(&thread_obj[0], file_enum_worker, 0, thread_stack_top, thread_stack_size, thread_priority, 0);
     dolphin_OSResumeThread(&thread_obj[0]);
 }
+
+#endif

@@ -144,7 +144,6 @@ FRESULT uf_open(const char* path) {
 
     dvd_custom_status(&__current_file);
     __file_size = (u32)__builtin_bswap64(*(u64*)(&__current_file.fsize));
-    // __file_size = ((u32*)&__current_file)[2]; // Dolphin only
     iprintf("dvd_custom_status res: %08x\n", __current_file.result);
 
     iprintf("dvd_custom_status size (fixed): %08x\n", __file_size);
@@ -158,6 +157,7 @@ FRESULT uf_read(void* buff, UINT btr, UINT* br) {
     // read 4k at a time and copy to buff
     // u32 btr_left = btr;
 
+    // TODO: support unaligned reads and undersized reads
     dvd_read_data(buff, btr, __file_offset, __current_file.fd);
 
     // u32 btr_read = 0;

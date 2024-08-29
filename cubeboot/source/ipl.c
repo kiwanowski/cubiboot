@@ -31,7 +31,7 @@ extern void *xfb;
 #define BS2_CODE_OFFSET (BS2_START_OFFSET + 0x20)
 #define BS2_BASE_ADDR 0x81300000
 
-#define DISABLE_SDA_CHECK
+// #define DISABLE_SDA_CHECK
 
 // SDA finding
 #ifndef DISABLE_SDA_CHECK
@@ -63,20 +63,15 @@ char *bios_path = TEST_IPL_PATH;
 char *bios_path = "/ipl.bin";
 #endif
 
-// TODO: detect bad IPL images
-// ipl_bad_ntsc_v10.bin  CRC = 6d740ae7, SHA1 = 015808f637a984acde6a06efa7546e278293c6ee
-// ipl_bad2_ntsc_v10.bin CRC = 8bdabbd4, SHA1 = f1b0ef434cd74fd8fe23698e2fc911d945b45bf1
-// ipl_bad_pal_v10.bin   CRC = dd8cab7c, SHA1 = 6f305c37dc1fbe332883bb8153eee26d3d325629
-// ipl_unknown.bin       CRC = d235e3f9, SHA1 = 96f69a21645de73a5ba61e57951ef303d55788c5
-
 // NOTE: these are not ipl.bin CRCs, but decoded ipl[0x100:] hashes
+// FIXME: this is over-reading by a lot (not fixed to code size)
 bios_item bios_table[] = {
     {IPL_NTSC_10,      IPL_NTSC,  "gc-ntsc-10",      "ntsc10",       "VER_NTSC_10",      CRC(0xa8325e47), SDA(0x81465320)},
     {IPL_NTSC_11,      IPL_NTSC,  "gc-ntsc-11",      "ntsc11",       "VER_NTSC_11",      CRC(0xf1ebeb95), SDA(0x81489120)},
     {IPL_NTSC_12_001,  IPL_NTSC,  "gc-ntsc-12_001",  "ntsc12_001",   "VER_NTSC_12_001",  CRC(0xc4c5a12a), SDA(0x8148b1c0)},
     {IPL_NTSC_12_101,  IPL_NTSC,  "gc-ntsc-12_101",  "ntsc12_101",   "VER_NTSC_12_101",  CRC(0xbf225e4d), SDA(0x8148b640)},
     {IPL_PAL_10,       IPL_PAL,   "gc-pal-10",       "pal10",        "VER_PAL_10",       CRC(0x5c3445d0), SDA(0x814b4fc0)},
-    {IPL_PAL_11,       IPL_PAL,   "gc-pal-11",       "pal11",        "VER_PAL_11",       CRC(0x05196b74), SDA(0x81483de0)},
+    {IPL_PAL_11,       IPL_PAL,   "gc-pal-11",       "pal11",        "VER_PAL_11",       CRC(0x05196b74), SDA(0x81483de0)}, // MPAL
     {IPL_PAL_12,       IPL_PAL,   "gc-pal-12",       "pal12",        "VER_PAL_12",       CRC(0x1082fbc9), SDA(0x814b7280)},
 };
 
@@ -123,9 +118,12 @@ void load_ipl() {
     u32 crc = csp_crc32_memory(bs2, bs2_size);
     iprintf("Read BS2 crc=%08x\n", crc);
 
+    u32 sda = get_sda_address();
+    iprintf("Read BS2 sda=%08x\n", sda);
+
     valid = false;
     for(int i = 0; i < sizeof(bios_table) / sizeof(bios_table[0]); i++) {
-        if(bios_table[i].crc == crc) {
+        if(bios_table[i].crc == crc && bios_table[i].sda == sda) {
             bios_index = i;
             valid = true;
             break;
@@ -189,11 +187,14 @@ void load_ipl() {
     crc = csp_crc32_memory(bs2, bs2_size);
     iprintf("Read IPL crc=%08x\n", crc);
 
-    valid = FALSE;
+    sda = get_sda_address();
+    iprintf("Read IPL sda=%08x\n", sda);
+
+    valid = false;
     for(int i = 0; i < sizeof(bios_table) / sizeof(bios_table[0]); i++) {
-        if(bios_table[i].crc == crc) {
+        if(bios_table[i].crc == crc && bios_table[i].sda == sda) {
             bios_index = i;
-            valid = TRUE;
+            valid = true;
             break;
         }
     }
@@ -224,13 +225,13 @@ ipl_loaded:
     }
 }
 
-// #ifndef DISABLE_SDA_CHECK
-//     u32 *sda_load = (u32*)SDA_LOAD_ADDR_A;
-//     if (*(u32*)STACK_SETUP_ADDR == 0x38000000) {
-//         sda_load = (u32*)SDA_LOAD_ADDR_B;
-//     }
-//     u32 sda_high = (sda_load[0] & 0xFFFF) << 16;
-//     u32 sda_low = sda_load[1] & 0xFFFF;
-//     u32 sda = sda_high | sda_low;
-//     iprintf("Read BS2 sda=%08x\n", sda);
-// #endif
+u32 get_sda_address() {
+    u32 *sda_load = (u32*)SDA_LOAD_ADDR_A;
+    if (*(u32*)STACK_SETUP_ADDR == 0x38000000) {
+        sda_load = (u32*)SDA_LOAD_ADDR_B;
+    }
+    u32 sda_high = (sda_load[0] & 0xFFFF) << 16;
+    u32 sda_low = sda_load[1] & 0xFFFF;
+    u32 sda = sda_high | sda_low;
+    return sda;
+}

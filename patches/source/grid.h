@@ -31,7 +31,7 @@ typedef struct {
 } line_backing_t;
 
 extern int number_of_lines;
-extern line_backing_t browser_lines[128];
+extern line_backing_t browser_lines[];
 
 // helper
 f32 get_position_after(line_backing_t *line_backing);

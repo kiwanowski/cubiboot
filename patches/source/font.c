@@ -53,8 +53,10 @@ void setup_fonts(u32 unk) {
     font_ptr_eng_a = *font_ptr_ptr_a;
     font_ptr_eng_b = *font_ptr_ptr_b;
     
+#ifdef PRINT_FONT_PTRS
     OSReport("font_ptr_eng_a = %p\n", font_ptr_eng_a);
     OSReport("font_ptr_eng_b = %p\n", font_ptr_eng_b);
+#endif
 
     *font_ptr_ptr_a = NULL;
     *font_ptr_ptr_b = NULL;
@@ -64,8 +66,10 @@ void setup_fonts(u32 unk) {
     font_ptr_jpn_a = *font_ptr_ptr_a;
     font_ptr_jpn_b = *font_ptr_ptr_b;
 
+#ifdef PRINT_FONT_PTRS
     OSReport("font_ptr_jpn_a = %p\n", font_ptr_jpn_a);
     OSReport("font_ptr_jpn_b = %p\n", font_ptr_jpn_b);
+#endif
 
     switch_lang_orig();
 }

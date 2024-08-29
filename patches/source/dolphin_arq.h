@@ -1,7 +1,7 @@
 #include <gctypes.h>
 
 // from https://github.com/zeldaret/tp/blob/e1147cf047a525242178bd0ec39c8ed88a2633f1/include/dolphin/arq.h#L12-L37
-typedef void (*ARQCallback)(u32 request_address);
+typedef void (*ARQCallback)(u32 arq_request_ptr);
 
 typedef enum _ARamType {
     ARAM_DIR_MRAM_TO_ARAM,

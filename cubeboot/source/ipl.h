@@ -31,3 +31,4 @@ typedef struct {
 extern bios_item *current_bios;
 
 void load_ipl();
+u32 get_sda_address();

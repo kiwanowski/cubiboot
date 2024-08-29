@@ -3828,9 +3828,11 @@ struct {
 	{0xebbff6c5, 0x0060a9c4},
 };
 
-u32	get_banner_offset(DiskHeader *header) {
+u32	get_banner_offset_fast(DiskHeader *header) {
+	if (header->DOLOffset == 0) return 0; // skip Datel discs
+
 	u32 hash = tinf_crc32((u8*)header, sizeof(DiskHeader));
-	hash += 1;
+	// hash += 1; // test only
 
 	for (int i = 0; i < bnr_offsets_count; i++) {
 		if (bnr_offsets[i].hash == hash)

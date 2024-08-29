@@ -39,6 +39,7 @@ patch_inst_pal "_patch_card_info_a" 0x8131b64c 0x8131abcc 0x8131b78c bl patched_
 patch_inst_ntsc "_patch_card_info_b" 0x8131a6bc 0x8131acc8 0x8131b060 0x8131b078 bl patched_card_info
 patch_inst_pal "_patch_card_info_b" 0x8131b674 0x8131abf4 0x8131b7b4 bl patched_card_info
 
+// this will show the correct language JPN/ENG in the memcard menu
 patch_inst_ntsc "_fix_card_info" 0x81319000 0x81319600 0x81319998 0x813199b0 bl fix_card_info
 patch_inst_pal "_fix_card_info" 0x81319fac 0x8131952c 0x8131a0ec bl fix_card_info
 

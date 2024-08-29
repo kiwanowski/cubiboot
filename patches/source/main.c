@@ -16,6 +16,7 @@
 
 #include "flippy_sync.h"
 #include "filebrowser.h"
+#include "games.h"
 #include "gc_dvd.h"
 
 #include "video.h"
@@ -257,7 +258,7 @@ __attribute_used__ void mod_cube_anim() {
 __attribute_used__ void pre_thread_init() {
     orig_thread_init();
     if (!start_passthrough_game) {
-        start_file_enum();
+        gm_start_thread();
     }
 }
 
@@ -352,6 +353,7 @@ __attribute_used__ u32 bs2tick() {
 #ifdef TEST_SKIP_ANIMATION
     return STATE_COVER_OPEN;
 #endif
+    // return STATE_WAIT_LOAD;
 
     if (start_passthrough_game) {
         if (postboot_delay_ms) {
@@ -445,10 +447,14 @@ __attribute_used__ void bs2start() {
         chainload_boot_game(NULL, true);
     }
 
+#if 0
     // TODO: use the filebrowser to get the game path
     // only load the apploader if the boot path is not a .dol file
     extern int strncmpci(const char * str1, const char * str2, size_t num);
     bool boot_dol_file = strncmpci(boot_path + strlen(boot_path) - 4, ".dol", 4) == 0 || strncmpci(boot_path + strlen(boot_path) - 8, ".dol+cli", 8) == 0;
+#else
+    bool boot_dol_file = false;
+#endif
 
     if (boot_dol_file) {
         custom_OSReport("Booting DOL\n");

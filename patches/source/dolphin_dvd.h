@@ -7,6 +7,10 @@
 #define T_FILE 0
 #define T_DIR 1
 
+// BNR Magic
+#define BANNER_MAGIC_1 0x424E5231
+#define BANNER_MAGIC_2 0x424E5232
+
 // Taken from Swiss-GC
 // The Retail Game DVD Disk Header
 // Info source: YAGCD
@@ -82,5 +86,22 @@ typedef struct _FSTEntry {
 
 // void DVDInit(void);
 // DiskHeader *__DVDFSInit(void);
+
+_Static_assert(sizeof(bool) == 1); // just make sure this is a single byte
+
+#define BANNER_SINGLE_LANG 0
+#define BANNER_MULTI_LANG 1
+
+typedef struct {
+	bool valid;
+	u8 game_id[6];
+	u8 bnr_type;
+	u32 bnr_offset;
+
+} dolphin_game_into_t;
+
+_Static_assert(sizeof(dolphin_game_into_t) == 12);
+
+dolphin_game_into_t get_game_info(char *game_path);
 
 #endif

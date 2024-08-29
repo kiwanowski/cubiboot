@@ -218,7 +218,7 @@ int main(int argc, char **argv) {
 
         if (shdr->sh_type == SHT_NOBITS && strncmp(patch_prefix, stringdata + shdr->sh_name, patch_prefix_len) != 0) {
             iprintf("Skipping NOBITS %s @ %08x!!\n", stringdata + shdr->sh_name, shdr->sh_addr);
-            memset((void*)shdr->sh_addr, 0, shdr->sh_size);
+            if (shdr->sh_addr > (u32)&_end) memset((void*)shdr->sh_addr, 0, shdr->sh_size);
         } else {
             // check if this is a patch section
             uint32_t sh_size = 0;

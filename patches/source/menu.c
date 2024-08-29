@@ -201,17 +201,17 @@ __attribute_used__ void custom_gameselect_init() {
     game_blob_b = *ptr_game_blob_b;
 
     // colors
-    u32 color_num = SAVE_COLOR_PURPLE;
+    u32 color_num = SAVE_COLOR_GREEN;
     u32 color_index = 1 << (10 + 3 + color_num);
     menu_color_icon = get_save_color(color_index, SAVE_ICON);
     menu_color_icon_sel = get_save_color(color_index, SAVE_ICON_SEL);
     menu_color_empty = get_save_color(color_index, SAVE_EMPTY);
     menu_color_empty_sel = get_save_color(color_index, SAVE_EMPTY_SEL);
 
-    DUMP_COLOR(menu_color_icon);
-    DUMP_COLOR(menu_color_icon_sel);
-    DUMP_COLOR(menu_color_empty);
-    DUMP_COLOR(menu_color_empty_sel);
+    // DUMP_COLOR(menu_color_icon);
+    // DUMP_COLOR(menu_color_icon_sel);
+    // DUMP_COLOR(menu_color_empty);
+    // DUMP_COLOR(menu_color_empty_sel);
 
     // empty icon
     empty_icon->data = save_empty;
@@ -424,7 +424,6 @@ void patch_anim_draw() {
 }
 
 // #define WITH_SPACE 1
-static u32 move_frame = 0;
 
 void setup_icon_positions() {
 #if defined(WITH_SPACE) && WITH_SPACE
@@ -535,15 +534,16 @@ __attribute_used__ void custom_gameselect_menu(u8 broken_alpha_0, u8 alpha_1, u8
     // arrows
     fix_gameselect_view();
     setup_tex_draw(1, 0, 0);
-    // void (*draw_named_tex)(u32 type, void *blob, GXColor *color, s16 x, s16 y) = (void*)0x8130a36c;
-    // draw_named_tex(make_type('a','r','a','d'), menu_blob, &white, 0x800 - 100, 0); // TODO: y pos
+    void (*draw_named_tex)(u32 type, void *blob, GXColor *color, s16 x, s16 y) = (void*)0x8130a36c;
+    draw_named_tex(make_type('a','r','a','d'), menu_blob, &white, 0x800 - 100, 0); // TODO: y pos anim
 
     // box
     GXColor top_color = {0x6e, 0x00, 0xb3, 0xc8};
     GXColor bottom_color = {0x80, 0x00, 0x57, 0xb4};
     draw_info_box(0x20f0, 0x560, 0x1230, 0x1640, ui_alpha, &top_color, &bottom_color);
 
-    game_asset_t *asset = get_game_asset(selected_slot);
+    // game_asset_t *asset = get_game_asset(selected_slot);
+    game_asset_t *asset = NULL;
     if (asset != NULL && selected_slot < game_backing_count) {
         if (asset->game_id[3] == 'J') switch_lang_jpn();
         else switch_lang_eng();
@@ -553,6 +553,9 @@ __attribute_used__ void custom_gameselect_menu(u8 broken_alpha_0, u8 alpha_1, u8
         draw_blob_text(make_type('t','i','t','l'), menu_blob, &white, asset->banner.desc->fullGameName, 0x1f);
         draw_blob_text(make_type('i','n','f','o'), menu_blob, &white, asset->banner.desc->description, 0x1f);
 #endif
+
+        draw_blob_text(make_type('t','i','t','l'), menu_blob, &white, "Some text!", 0x1f);
+        draw_blob_text(make_type('i','n','f','o'), menu_blob, &white, "Hello", 0x1f);
 
         switch_lang_eng();
         if (is_dol_slot(selected_slot)) {
@@ -589,11 +592,11 @@ __attribute_used__ void original_gameselect_menu(u8 broken_alpha_0, u8 alpha_1, 
     u8 ui_alpha = alpha_1;
     GXColor white = {0xFF, 0xFF, 0xFF, ui_alpha};
 
+#if 0
     game_asset_t *asset = get_game_asset(selected_slot);
     if (asset->game_id[3] == 'J') switch_lang_jpn();
     else switch_lang_eng();
 
-#if 0
     if (!is_dol_slot(selected_slot)) {
         // game banner
         setup_tex_draw(1, 0, 1);
@@ -735,7 +738,7 @@ __attribute_used__ s32 handle_gameselect_inputs() {
     if (pad_status->buttons_down & PAD_BUTTON_START && current_gameselect_state == SUBMENU_GAMESELECT_START) {
         Jac_StopSoundAll();
         Jac_PlaySe(SOUND_MENU_FINAL);
-        strcpy(boot_path, get_game_path(selected_slot));
+        //strcpy(boot_path, get_game_path(selected_slot));
         *bs2start_ready = 1;
     }
 

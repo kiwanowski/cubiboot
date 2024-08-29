@@ -4,10 +4,12 @@ ENTRY(_start)
 
 PHDRS {
     text PT_LOAD;
+    data PT_LOAD;
 }
 
 MEMORY {
     MRAM (rwx) : ORIGIN = 0x81600000, LENGTH = 1M
+    LOWMEM (rwx) : ORIGIN = 0x80100000, LENGTH = 4M
 }
 
 /* used by usbgecko */
@@ -18,6 +20,13 @@ DSP = 0xCC005000;
 OS_CURRENT_THREAD = 0x800000E4;
 
 SECTIONS {
+    . = 0x80100000;
+
+    .data_lowmem (NOLOAD) : {
+        . = ALIGN(4);
+        *(.data_lowmem*)
+    } > LOWMEM
+
     . = 0x81600000;
 
     .text : {
@@ -26,12 +35,12 @@ SECTIONS {
 
         *(.rodata* .data* .bss* .sbss* .gnu.linkonce.r.*);
         . = ALIGN(32);
-    } :text = 0
+    } > MRAM : text = 0
 
     .reloc : {
         *(.reloc*);
         . = ALIGN(32);
-    } :text
+    } > MRAM : text
 
     _patches_end = .;
 }

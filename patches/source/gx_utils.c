@@ -7,6 +7,8 @@
 WGPipe* const wgPipe = (WGPipe*)0xCC008000;
 struct __gx_regdef* const __gx = (struct __gx_regdef*)0x815829b0;
 
+// TODO: find the other pointers
+
 #define _SHIFTL(v, s, w)	\
     ((u32) (((u32)(v) & ((0x01 << (w)) - 1)) << (s)))
 #define _SHIFTR(v, s, w)	\

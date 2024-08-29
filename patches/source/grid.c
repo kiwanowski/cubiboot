@@ -3,11 +3,9 @@
 #include <stdint.h>
 #include <gctypes.h>
 #include "reloc.h"
+#include "attr.h"
 
 #include "grid.h"
-
-// draw variables
-const int xfbHeight = 448;
 
 // ===============================================================================
 
@@ -17,7 +15,7 @@ const int xfbHeight = 448;
 #define ANIM_DIRECTION_DOWN 1
 
 bool grid_setup_done = false;
-line_backing_t browser_lines[128];
+line_backing_t browser_lines[256]; // 256 lines * 8 slots = 2048 slots
 
 // ===============================================================================
 
