@@ -57,6 +57,7 @@ __attribute_reloc__ void (*draw_blob_text_long)(u32 type, void *blob, GXColor *c
 __attribute_reloc__ void (*draw_blob_border)(u32 type, void *blob, GXColor *color);
 __attribute_reloc__ void (*draw_blob_tex)(u32 type, void *blob, GXColor *color, tex_data *dat);
 __attribute_reloc__ void (*setup_tex_draw)(s32 unk0, s32 unk1, s32 unk2);
+__attribute_reloc__ void (*draw_named_tex)(u32 type, void *blob, GXColor *color, s16 x, s16 y);
 
 // unknown blob (from memcard menu)
 __attribute_reloc__ void **ptr_menu_blob;
@@ -364,8 +365,10 @@ inline u16 get_border_index() {
     case IPL_PAL_10_002:
     case IPL_PAL_12_101:
         border_index = 0x4b;
+        break;
     case IPL_MPAL_11:
         border_index = 0x12;
+        break;
     default:
         break;
     }
@@ -473,7 +476,7 @@ void set_gameselect_view(Mtx matrix, Mtx inverse) {
 void fix_gameselect_view() {
     GX_LoadPosMtxImm(global_gameselect_matrix,0);
     GX_LoadNrmMtxImm(global_gameselect_inverse,0);
-    GX_SetCurrentMtx(0);
+    GXSetCurrentMtx(0);
 }
 
 __attribute_data__ u32 current_gameselect_state = SUBMENU_GAMESELECT_LOADER;
@@ -534,7 +537,6 @@ __attribute_used__ void custom_gameselect_menu(u8 broken_alpha_0, u8 alpha_1, u8
     // arrows
     fix_gameselect_view();
     setup_tex_draw(1, 0, 0);
-    void (*draw_named_tex)(u32 type, void *blob, GXColor *color, s16 x, s16 y) = (void*)0x8130a36c;
     draw_named_tex(make_type('a','r','a','d'), menu_blob, &white, 0x800 - 100, 0); // TODO: y pos anim
 
     // box

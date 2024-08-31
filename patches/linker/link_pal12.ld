@@ -31,10 +31,12 @@ pal12_draw_partial = 0x813053b0;
 pal12_change_model = 0x813042f4;
 pal12_draw_start_anim = 0x81333170;
 pal12_setup_tex_draw = 0x8130198c;
+pal12_draw_named_tex = 0x8130a3c4;
 pal12_get_camera_mtx = 0x813030f0;
 pal12_set_obj_pos = 0x813054e4;
 pal12_set_obj_cam = 0x81305530;
 
+pal12___gx = 0x80000000;
 pal12___pformatter = 0x8137d9cc;
 pal12___StringWrite = 0x8137d960;
 
@@ -85,3 +87,6 @@ pal12_SetEffectivePriority = 0x813657e0;
 pal12___OSGetEffectivePriority = 0x813657e0;
 pal12_OSSleepThread = 0x81366478;
 pal12_OSWakeupThread = 0x81366564;
+
+pal12_GXSetCurrentMtx = 0x8137bb34;
+pal12_ARQPostRequest = 0x813756e0;

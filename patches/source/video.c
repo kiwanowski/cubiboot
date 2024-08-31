@@ -1,4 +1,6 @@
-#include <gccore.h>
+#include <gctypes.h>
+#include <ogc/gx_struct.h>
+#include <ogc/video_types.h>
 
 static vu16* const _viReg = (u16*)0xCC002000;
 

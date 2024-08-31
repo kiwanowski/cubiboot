@@ -55,6 +55,7 @@ ntsc11_draw_blob_text_long = 0x8130a8cc;
 ntsc11_draw_blob_border = 0x81309d24;
 ntsc11_draw_blob_tex = 0x8130a400;
 ntsc11_setup_tex_draw = 0x8130180c;
+ntsc11_draw_named_tex = 0x8130a36c;
 ntsc11_ptr_menu_blob = 0x814815e4;
 ntsc11_ptr_game_blob_a = 0x814816d4;
 ntsc11_ptr_game_blob_b = 0x814816d0;
@@ -90,3 +91,6 @@ ntsc11_SetEffectivePriority = 0x8135f3e4;
 ntsc11___OSGetEffectivePriority = 0x8135f3a8;
 ntsc11_OSSleepThread = 0x8135ff8c;
 ntsc11_OSWakeupThread = 0x81360078;
+
+ntsc11_GXSetCurrentMtx = 0x81376938;
+ntsc11_ARQPostRequest = 0x8136ab80;

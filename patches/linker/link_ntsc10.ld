@@ -36,6 +36,7 @@ ntsc10_draw_blob_text_long = 0x8130a9c0;
 ntsc10_draw_blob_border = 0x81309e18;
 ntsc10_draw_blob_tex = 0x8130a4f4;
 ntsc10_setup_tex_draw = 0x81301a04;
+ntsc10_draw_named_tex = 0x8130a460;
 ntsc10_get_camera_mtx = 0x813030ac;
 ntsc10_set_obj_pos = 0x81305494;
 ntsc10_set_obj_cam = 0x813054e0;
@@ -90,3 +91,6 @@ ntsc10_SetEffectivePriority = 0x813385e4;
 ntsc10___OSGetEffectivePriority = 0x813385a8;
 ntsc10_OSSleepThread = 0x8133918c;
 ntsc10_OSWakeupThread = 0x81339278;
+
+ntsc10_GXSetCurrentMtx = 0x8134e424;
+ntsc10_ARQPostRequest = 0x81341bb4;

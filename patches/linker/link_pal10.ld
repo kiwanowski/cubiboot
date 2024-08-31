@@ -31,6 +31,7 @@ pal10_draw_partial = 0x81305248;
 pal10_change_model = 0x8130418c;
 pal10_draw_start_anim = 0x81333030;
 pal10_setup_tex_draw = 0x8130180c;
+pal10_draw_named_tex = 0x8130a284;
 pal10_get_camera_mtx = 0x81302f88;
 pal10_set_obj_pos = 0x8130537c;
 pal10_set_obj_cam = 0x813053c8;
@@ -87,3 +88,6 @@ pal10_SetEffectivePriority = 0x813629c4;
 pal10___OSGetEffectivePriority = 0x81362988;
 pal10_OSSleepThread = 0x8136356c;
 pal10_OSWakeupThread = 0x81363658;
+
+pal10_GXSetCurrentMtx = 0x81379f18;
+pal10_ARQPostRequest = 0x8136e160;

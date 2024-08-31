@@ -3,11 +3,9 @@
 #include <ogc/gx_struct.h>
 #include "gx_regdef.h"
 #include "reloc.h"
+#include "attr.h"
 
 WGPipe* const wgPipe = (WGPipe*)0xCC008000;
-struct __gx_regdef* const __gx = (struct __gx_regdef*)0x815829b0;
-
-// TODO: find the other pointers
 
 #define _SHIFTL(v, s, w)	\
     ((u32) (((u32)(v) & ((0x01 << (w)) - 1)) << (s)))
@@ -104,22 +102,4 @@ void GX_LoadNrmMtxImm(const Mtx mt,u32 pnidx)
 {
 	GX_LOAD_XF_REGS((0x0400|(pnidx*3)),9);
 	WriteMtxPS3x3from4x3(mt,(void*)wgPipe);
-}
-
-static void __GX_SetMatrixIndex(u32 mtx)
-{
-    // OSReport("Got __gx = %08x\n", (u32)__gx);
-	if(mtx<5) {
-		GX_LOAD_CP_REG(0x30,__gx->mtxIdxLo);
-		GX_LOAD_XF_REG(0x1018,__gx->mtxIdxLo);
-	} else {
-		GX_LOAD_CP_REG(0x40,__gx->mtxIdxHi);
-		GX_LOAD_XF_REG(0x1019,__gx->mtxIdxHi);
-	}
-}
-
-void GX_SetCurrentMtx(u32 mtx)
-{
-	__gx->mtxIdxLo = (__gx->mtxIdxLo&~0x3f)|(mtx&0x3f);
-	__GX_SetMatrixIndex(0);
 }

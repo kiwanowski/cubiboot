@@ -47,6 +47,7 @@ func main() {
 		}
 	}
 
+	failed := false
 	for _, s := range syms {
 		if s.Name == "" || s.Name == "_patches_end" {
 			continue
@@ -60,22 +61,27 @@ func main() {
 		}
 
 		// check if reloc is valid
-		fmt.Println("Checking", "["+s.Name+"]")
 		symbolValid := true
+		missing := []string{}
 		for _, prefix := range validRelocPrefixes {
 			target := prefix + s.Name
 			if _, ok := globalSymbols[target]; !ok {
-				fmt.Println("TARGET NOT FOUND", target)
+				missing = append(missing, target)
 				symbolValid = false
 			}
 		}
 
-		if symbolValid {
-			fmt.Println("RELOC GOOD")
+		if !symbolValid {
+			fmt.Println("Checking", "["+s.Name+"]")
+			for _, target := range missing {
+				fmt.Println("TARGET NOT FOUND", target)
+			}
+			fmt.Println("")
+			failed = true
 		}
-
-		fmt.Println("")
 	}
 
-	// xx
+	if failed {
+		os.Exit(1)
+	}
 }
