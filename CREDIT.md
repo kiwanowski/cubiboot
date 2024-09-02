@@ -28,6 +28,7 @@
 `patches/source/decomp_arq.c` credit to github.com/PrimeDecomp/prime <br/>
 `patches/source/decomp_arq.c` credit to github.com/PrimeDecomp/prime <br/>
 `patches/source/decomp_os.h`  credit to github.com/PrimeDecomp/prime <br/>
+`patches/source/decomp_regs.h` credit to github.com/PrimeDecomp/prime <br/>
 
 <hr/>
 

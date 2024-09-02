@@ -10,17 +10,12 @@
 // patch_inst vNTSC_11(_skip_menu_logo_b) 0x8130bcc0 li r0, 5
 
 // Trevor's greatest hits
-patch_inst vNTSC_11(_skip_menu_logo_c) 0x8130d178 li r3, 4 // force menu fast
+// patch_inst vNTSC_11(_skip_menu_logo_c) 0x8130d178 li r3, 4 // force menu fast
 // patch_inst vNTSC_11(_force_anim_draw) 0x8130d588 nop
 // patch_inst vNTSC_11(_patch_anim_draw) 0x8130d590 bl patch_anim_draw
 
-patch_inst vNTSC_10(_reduce_aram_alloc) 0x81301204 lis r5, 0x10 // Reduce ARAM to 1MB for JAudio (also used in Pikmin)
-patch_inst vNTSC_11(_reduce_aram_alloc) 0x81301040 lis r5, 0x10 // Reduce ARAM to 1MB for JAudio (also used in Pikmin)
-patch_inst vNTSC_12_001(_reduce_aram_alloc) 0x813013f4 lis r5, 0x10 // Reduce ARAM to 1MB for JAudio (also used in Pikmin)
-patch_inst vNTSC_12_101(_reduce_aram_alloc) 0x813013f8 lis r5, 0x10 // Reduce ARAM to 1MB for JAudio (also used in Pikmin)
-patch_inst vPAL_10(_reduce_aram_alloc) 0x81301040 lis r5, 0x10 // Reduce ARAM to 1MB for JAudio (also used in Pikmin)
-patch_inst vPAL_11(_reduce_aram_alloc) 0x81301040 lis r5, 0x10 // Reduce ARAM to 1MB for JAudio (also used in Pikmin)
-patch_inst vPAL_12(_reduce_aram_alloc) 0x81301040 lis r5, 0x10 // Reduce ARAM to 1MB for JAudio (also used in Pikmin)
+patch_inst_ntsc "_reduce_aram_alloc" 0x81301204 0x81301040 0x813013f4 0x813013f8 lis r5, 0x10 // Reduce ARAM to 1MB for JAudio (also used in Pikmin)
+patch_inst_pal "_reduce_aram_alloc" 0x81301040 0x81301040 0x81301040 lis r5, 0x10 // Reduce ARAM to 1MB for JAudio (also used in Pikmin)
 
 // patch_inst_ntsc "_force_lang" 0x8130b5b8 0x8130b740 0x8130bab4 0x8130bacc bl set_forced_lang
 patch_inst_ntsc "_force_lang" 0x8130b5b4 0x8130b73c 0x8130bab0 0x8130bac8 li r0, 0 // Force English=0, Japanese=2 (NTSC Only)

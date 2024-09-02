@@ -183,7 +183,7 @@ s32 usb_WriteUARTN(const void *buf, u32 len)
 
 #ifdef DEBUG
 
-#define PRINT_TIMESTAMPS
+// #define PRINT_TIMESTAMPS
 
 u64 first_print = 0;
 void custom_OSReport(const char *fmt, ...) {

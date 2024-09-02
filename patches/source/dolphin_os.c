@@ -45,6 +45,7 @@ void OSInitThreadQueue(OSThreadQueue* queue) {
     queue->head = NULL;
 }
 
+// from https://github.com/zeldaret/tww/blob/4d5aeeefc6329a307613c2be0128084c6ed8b88f/src/dolphin/os/OSThread.c#L538-L559
 #define RemoveItem(queue, thread, link)                                                            \
     do {                                                                                           \
         OSThread *next, *prev;                                                                     \
