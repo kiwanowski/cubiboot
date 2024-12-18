@@ -465,7 +465,7 @@ gm_list_info gm_list_files(const char *target_dir) {
     OSReport("Listing files in %s\n", target_dir);
     u64 start_time = gettime();
 
-    int res = dvd_custom_open(target_dir, FILE_ENTRY_TYPES_DIR, 0);
+    int res = dvd_custom_open(target_dir, FILE_TYPE_FLAG_DIR, 0);
     if (res != 0) {
         OSReport("PANIC: SD Card could not be opened\n");
         while(1);
@@ -494,7 +494,7 @@ gm_list_info gm_list_files(const char *target_dir) {
 
         // only check file ext for now
         gm_file_type_t file_type = GM_FILE_TYPE_UNKNOWN;
-        if (ent.types & FILE_ENTRY_TYPES_DIR) {
+        if (ent.types & FILE_TYPE_FLAG_DIR) {
             file_type = GM_FILE_TYPE_DIRECTORY;
         } else {
             file_type = gm_get_file_type(ent.name);
@@ -553,7 +553,7 @@ static int gm_load_banner(gm_file_entry_t *entry, u32 aram_offset, bool force_un
     if (entry->extra.dvd_bnr_offset == 0) return false;
 
     // load the banner
-    dvd_custom_open(entry->path, FILE_ENTRY_TYPES_FILE, IPC_FILE_FLAG_DISABLECACHE | IPC_FILE_FLAG_DISABLESPEEDEMU);
+    dvd_custom_open(entry->path, FILE_TYPE_FLAG_FILE, IPC_FILE_FLAG_DISABLECACHE | IPC_FILE_FLAG_DISABLESPEEDEMU);
     file_status_t *status = dvd_custom_status();
     if (status == NULL || status->result != 0) {
         OSReport("ERROR: could not open file\n");
@@ -596,7 +596,7 @@ static bool gm_load_icon(gm_file_entry_t *entry, u32 aram_offset, bool force_unl
     strcpy(ext, ".png");
 
     // load the icon
-    dvd_custom_open(icon_path, FILE_ENTRY_TYPES_FILE, IPC_FILE_FLAG_DISABLECACHE | IPC_FILE_FLAG_DISABLEFASTSEEK);
+    dvd_custom_open(icon_path, FILE_TYPE_FLAG_FILE, IPC_FILE_FLAG_DISABLECACHE | IPC_FILE_FLAG_DISABLEFASTSEEK);
     file_status_t *status = dvd_custom_status();
     if (status == NULL || status->result != 0) {
         // OSReport("ERROR: could not open icon file\n");

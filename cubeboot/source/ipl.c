@@ -97,7 +97,7 @@ void load_ipl(bool is_running_dolphin) {
     }
 
 #ifdef TEST_IPL_PATH
-    int ret = dvd_custom_open(TEST_IPL_PATH, FILE_ENTRY_TYPES_FILE, IPC_FILE_FLAG_DISABLECACHE | IPC_FILE_FLAG_DISABLEFASTSEEK);
+    int ret = dvd_custom_open(TEST_IPL_PATH, FILE_TYPE_FLAG_FILE, IPC_FILE_FLAG_DISABLECACHE | IPC_FILE_FLAG_DISABLEFASTSEEK);
     iprintf("OPEN ret: %08x\n", ret);
     GCN_ALIGNED(file_status_t) status;
     dvd_custom_status(&status);

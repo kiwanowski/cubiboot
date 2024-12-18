@@ -114,17 +114,20 @@ enum {
 };
 
 enum {
-    FILE_ENTRY_TYPES_FILE    = 0x01,
-    FILE_ENTRY_TYPES_DIR     = 0x02,
-    FILE_ENTRY_TYPES_HIDDEN  = 0x04,
+    FILE_TYPE_FLAG_FILE   = 0x00,
+    FILE_TYPE_FLAG_RDO    = 0x01, // AM_RDO
+    FILE_TYPE_FLAG_HIDDEN = 0x02, // AM_HID
+    FILE_TYPE_FLAG_SYSTEM = 0x04, // AM_SYS
+    FILE_TYPE_FLAG_DIR    = 0x10, // AM_DIR
+    FILE_TYPE_FLAG_ARC    = 0x20, // AM_ARC
 };
 
 enum {
-    FILE_TYPE_FILE = 0,
-    FILE_TYPE_DIR  = 1,
+    INTERNAL_FD_TYPE_FILE = 0,
+    INTERNAL_FD_TYPE_DIR  = 1,
 
-    FILE_TYPE_BAD = 0xFF,
-    FILE_TYPE_MAX = 0xFF
+    INTERNAL_FD_TYPE_BAD = 0xFF,
+    INTERNAL_FD_TYPE_MAX = 0xFF
 };
 
 typedef struct {
