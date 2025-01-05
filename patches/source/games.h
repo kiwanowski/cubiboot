@@ -61,12 +61,12 @@ typedef struct {
     gm_banner_t banner;
 } gm_asset_t;
 
-typedef struct gm_disc_header {
-    char game_code[4];
-	char maker_code[2];
-	char disk_id;
-	char version;
-} gm_disc_header_t;
+// typedef struct gm_disc_header {
+//     char game_code[4];
+// 	char maker_code[2];
+// 	char disk_id;
+// 	char version;
+// } gm_disc_header_t;
 
 typedef struct {
     u8 game_id[6];
@@ -98,6 +98,10 @@ extern int game_backing_count;
 extern OSMutex *game_enum_mutex;
 extern bool game_enum_running;
 extern char game_enum_path[];
+
+// for boot but defined in main (???)
+extern gm_file_entry_t boot_entry;
+extern gm_file_entry_t second_boot_entry;
 
 void gm_init_heap();
 void gm_init_thread();

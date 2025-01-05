@@ -381,9 +381,9 @@ __attribute_used__ u32 bs2tick() {
 }
 
 __attribute_used__ void bs2start() {
-    OSReport("DONE ALL GAME\n");
+    OSReport("DONE\n");
     if (!start_passthrough_game) {
-         gm_deinit_thread();
+        gm_deinit_thread();
     }
 
     // memcpy(global_state, &local_state, sizeof(cubeboot_state));
@@ -446,7 +446,7 @@ __attribute_used__ void bs2start() {
     } else {
         custom_OSReport("Booting ISO\n");
 
-        char *game_code = boot_entry.extra.game_id;
+        char *game_code = (char*)boot_entry.extra.game_id;
         bool is_xeno_crisis = (game_code[0] == 'G' && game_code[1] == 'C' && game_code[2] == 'R');
         bool use_swiss_patches = force_swiss_boot;
 

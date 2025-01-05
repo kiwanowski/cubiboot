@@ -1,8 +1,3 @@
-/* OSClearContext */
-/* OSSetCurrentContext */
-/* __OSSetInterruptHandler */
-/* __OSUnmaskInterrupts */
-
 ntsc10_OSSetCurrentContext = 0x81334300;
 ntsc10_OSClearContext = 0x813344c8;
 ntsc10___OSSetInterruptHandler = 0x813361fc;

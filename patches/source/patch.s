@@ -4,7 +4,6 @@
 
 // patch_inst vNTSC_11(_change_background_color) 0x81481cc8 .4byte 0x000435FF
 // patch_inst vNTSC_11(_test_only_a) 0x8131e360 bl mega_trap
-
 // patch_inst vNTSC_11(_test_only_b) 0x81301448 bl before_audio_init
 // patch_inst vNTSC_11(_gameselect_hide_cubes) 0x81327454 nop
 // patch_inst vNTSC_11(_skip_menu_logo_a) 0x8130bcb4 li r3, 1

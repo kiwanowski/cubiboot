@@ -12,6 +12,7 @@
 #include "menu.h"
 #include "grid.h"
 #include "games.h"
+#include "gameid.h"
 
 #include "dolphin_dvd.h"
 
@@ -774,6 +775,10 @@ __attribute_used__ s32 handle_gameselect_inputs() {
                 setup_gameselect_anim();
                 setup_cube_anim();
 
+                if (entry->type == GM_FILE_TYPE_GAME) {
+                    mcp_set_gameid(entry);
+                }
+
                 // OSReport("Selected slot: %d (%p)\n", selected_slot, asset);
             }
         }
@@ -787,9 +792,6 @@ __attribute_used__ s32 handle_gameselect_inputs() {
         Jac_StopSoundAll();
         Jac_PlaySe(SOUND_MENU_FINAL);
         gm_file_entry_t *entry = gm_get_game_entry(selected_slot);
-
-        extern gm_file_entry_t boot_entry;
-        extern gm_file_entry_t second_boot_entry;
         memcpy(&boot_entry, entry, sizeof(gm_file_entry_t));
         if (boot_entry.second != NULL) {
             memcpy(&second_boot_entry, boot_entry.second, sizeof(gm_file_entry_t));

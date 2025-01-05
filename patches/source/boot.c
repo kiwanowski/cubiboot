@@ -87,7 +87,7 @@ void chainload_swiss_game(char *game_path, bool passthrough, bool enable_patches
 
     char autoload_arg[256];
     if (passthrough) {
-        strcpy(autoload_arg, "Autoload=dvd:/");
+        strcpy(autoload_arg, "Autoload=dvd:/*.gcm");
     } else {
         strcpy(autoload_arg, "Autoload=fldrv:");
         strcat(autoload_arg, game_path);
