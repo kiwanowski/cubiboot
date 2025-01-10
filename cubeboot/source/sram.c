@@ -40,7 +40,7 @@ void create_swiss_config() {
     if (ret != 0) return;
 
     // file exists
-	if(status.result == 0 && status.fd != 0) {
+    if(status.result == 0 && status.fd != 0) {
         dvd_custom_close(status.fd);
         return;
     }
@@ -53,7 +53,7 @@ void create_swiss_config() {
     // I have checked and it can safely generate defaults from an empty file
 
     // file created!
-	if(status.result == 0 && status.fd != 0) {
+    if(status.result == 0 && status.fd != 0) {
         dvd_custom_close(status.fd);
         return;
     }
