@@ -83,25 +83,32 @@ extern u32 diff_msec(s64 start,s64 end);
 
 static bool valid = false;
 
-typedef struct {
-    u16 magic;
-    u8 revision;
-    u8 padding;
-    u32 blob_checksum;
-    u32 code_size;
-    u32 code_checksum;
-} ipl_metadata_t;
-
 void load_ipl(bool is_running_dolphin) {
+     ipl_metadata_t *blob_metadata = (void*)0x81500000 - sizeof(ipl_metadata_t);
+
+    iprintf("ORIG Metadata:\n");
+    iprintf("\tMagic: %x\n", blob_metadata->magic);
+    iprintf("\tRevision: %x\n", blob_metadata->revision);
+    iprintf("\tBlob checksum: %x\n", blob_metadata->blob_checksum);
+    iprintf("\tCode size: %x\n", blob_metadata->code_size);
+    iprintf("\tCode checksum: %x\n", blob_metadata->code_checksum);
+
     ARAMFetch((void*)BS2_BASE_ADDR, (void*)0xe00000, 0x200000);
-    ipl_metadata_t *blob_metadata = (void*)0x81500000 - sizeof(ipl_metadata_t);
 
     ipl_metadata_t metadata = {};
     memcpy(&metadata, blob_metadata, sizeof(ipl_metadata_t));
     memset(blob_metadata, 0, sizeof(ipl_metadata_t));
 
+    iprintf("ARAM Metadata:\n");
+    iprintf("\tMagic: %x\n", metadata.magic);
+    iprintf("\tRevision: %x\n", metadata.revision);
+    iprintf("\tBlob checksum: %x\n", metadata.blob_checksum);
+    iprintf("\tCode size: %x\n", metadata.code_size);
+    iprintf("\tCode checksum: %x\n", metadata.code_checksum);
+
     if (metadata.magic != 0xC0DE) {
-        prog_halt("Invalid IPL metadata\n");
+        iprintf("Invalid IPL metadata\n"); // do not halt
+        exit(0); // call stub
     }
 #if 0
     if (is_running_dolphin) {

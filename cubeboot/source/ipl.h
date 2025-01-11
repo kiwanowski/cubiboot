@@ -19,6 +19,15 @@ typedef enum ipl_version {
 } ipl_version;
 
 typedef struct {
+    u16 magic;
+    u8 revision;
+    u8 padding;
+    u32 blob_checksum;
+    u32 code_size;
+    u32 code_checksum;
+} ipl_metadata_t;
+
+typedef struct {
     ipl_version version;
     ipl_types type;
     char *name;

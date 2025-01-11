@@ -171,6 +171,14 @@ int main(int argc, char **argv) {
     iprintf("XFB = %08x [max=%x]\n", (u32)xfb, VIDEO_GetFrameBufferSize(&TVPal576ProgScale));
 #endif
 
+    ipl_metadata_t *metadata = (void*)0x81500000 - sizeof(ipl_metadata_t);
+    iprintf("EARLY Metadata:\n");
+    iprintf("\tMagic: %x\n", metadata->magic);
+    iprintf("\tRevision: %x\n", metadata->revision);
+    iprintf("\tBlob checksum: %x\n", metadata->blob_checksum);
+    iprintf("\tCode size: %x\n", metadata->code_size);
+    iprintf("\tCode checksum: %x\n", metadata->code_checksum);
+
     // setup passthrough arg
     u32 force_passthrough = 0;
     if (argc > 1 && strcmp(argv[1], "passthrough") == 0) {
