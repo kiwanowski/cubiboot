@@ -450,7 +450,7 @@ __attribute_used__ void bs2start() {
         bool is_xeno_crisis = (game_code[0] == 'G' && game_code[1] == 'C' && game_code[2] == 'R');
         bool use_swiss_patches = force_swiss_boot;
 
-        if (force_legacy_boot || is_xeno_crisis) {
+        if ((force_legacy_boot && !use_swiss_patches) || is_xeno_crisis) {
             custom_OSReport("Booting ISO (custom apploader)\n");
             legacy_chainload_boot_game(&boot_entry, false);
         } else {
