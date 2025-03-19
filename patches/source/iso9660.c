@@ -22,11 +22,9 @@ __attribute__((aligned(32))) static char iso9660Buf[32];
     if (strncmp(&iso9660Buf[1], "CD001", 5) != 0) {
         custom_OSReport("ISO9660 magic not found at 0x8000\n");
         return 0;
+    } else {
+        custom_OSReport("ISO9660 magic found at 0x8000\n"); // good!
     }
-
-    custom_OSReport("ISO9660 magic found at 0x8000\n");
-
-    // ...
 
     BootRecordVolumeDescriptor *brvd = (void*)&iso_sector_buf[0];
     int found = 0;

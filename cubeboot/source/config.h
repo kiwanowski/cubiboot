@@ -1,4 +1,3 @@
-
 // #define TEST_IPL_PATH "/gc-ntsc-11.bin"
 // #define FORCE_IPL_LOAD
 // #define TEST_SKIP_ANIMATION

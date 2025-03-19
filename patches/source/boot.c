@@ -226,6 +226,8 @@ void chainload_boot_game(gm_file_entry_t *boot_entry, bool passthrough) {
     } else {
         __attribute__((aligned(32))) static DiskHeader header;
         dvd_read(&header, sizeof(DiskHeader), 0, 0); //Read in the disc header
+        memcpy((void*)0x80000000, &header, 0x20);
+        DCFlushRange((void*)0x80000000, 0x20);
 
         dol_offset = header.DOLOffset;
         fst_offset = header.FSTOffset;
@@ -324,7 +326,7 @@ void chainload_boot_game(gm_file_entry_t *boot_entry, bool passthrough) {
     dol_info_t info = load_dol(dol_offset, 0);
     custom_OSReport("Booting... (%08x)\n", (u32)info.entrypoint);
 
-    char *game_code = (char*)boot_entry->extra.game_id;
+    char *game_code = (char*)&lowmem->b_disk_info.game_code[0];
     bool is_tonyhawk_pro_4 = (game_code[0] == 'G' && game_code[1] == 'T' && game_code[2] == '4');
     if (is_tonyhawk_pro_4) {
         custom_OSReport("Tony Hawk Pro Skater 4 detected\n");
