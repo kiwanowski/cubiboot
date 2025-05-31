@@ -66,7 +66,7 @@ __attribute_reloc__ void (*__OSStopAudioSystem)();
 
 // for setup
 __attribute_reloc__ void (*orig_thread_init)();
-__attribute_reloc__ void (*menu_init)();
+__attribute_reloc__ void (*menu_init)(int unk);
 __attribute_reloc__ void (*main)();
 
 __attribute_reloc__ model *bg_outer_model;
