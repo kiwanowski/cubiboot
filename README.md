@@ -1,4 +1,4 @@
-#cubiboot
+# cubiboot
 
 This is a fork of cubeboot by TeamOffBroadway with support for SD2SP2, SD Gecko or similar SD adapters.
 
