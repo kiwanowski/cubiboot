@@ -2,14 +2,14 @@
 
 This is a fork of [cubeboot](https://github.com/OffBroadway/cubeboot) by [TeamOffBroadway](https://github.com/OffBroadway) with support for SD2SP2, SD Gecko or similar SD adapters.
 
-## Installation - PicoLoader
-1. Download the ```cubiboot_pl.uf2``` file
+## Installation - [PicoLoader](https://github.com/makeo/PicoLoader)
+1. Download the ```cubiboot_picoloader.uf2``` file
 2. Hold down the button on the RP Pico whilst plugging it into your PC
 3. Copy the .uf2 file to the USB drive
 4. Download the [latest Swiss](https://github.com/emukidid/swiss-gc/releases/latest) dol
 5. Rename the Swiss dol to ```swiss-gc.dol``` and place it on your SD card
 
-## Installation - PicoBoot, or PicoLoader with gekkoboot payload
+## Installation - [PicoLoader](https://github.com/makeo/PicoLoader)/[PicoBoot](https://github.com/webhdx/PicoBoot) with gekkoboot payload
 1. Download the ```cubiboot.dol```
 2. Rename it to ```ipl.dol```
 3. Copy the ```ipl.dol``` onto your SD card
@@ -18,7 +18,7 @@ This is a fork of [cubeboot](https://github.com/OffBroadway/cubeboot) by [TeamOf
 
 ## Known Bugs
 - cube_logo option does not work
-- PicoBoot uf2: does not work
+- unable to create working PicoBoot uf2
 
 ## Special Thanks
 - [TeamOffBroadway](https://github.com/OffBroadway) for creating cubeboot
