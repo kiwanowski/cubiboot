@@ -24,6 +24,7 @@ ODEs besides PicoLoader are not supported, and issues specific to these devices 
 
 ## Known Bugs
 - cube_logo option does not work
+- button_* options to not work (use gekkoboot for this functionality instead)
 - no PicoBoot uf2
 
 ## Special Thanks
