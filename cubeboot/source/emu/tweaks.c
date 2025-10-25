@@ -10,6 +10,7 @@
 #include "../ipl.h"
 #include "../boot/ssaram.h"
 #include "../crc32.h"
+#include "../sd.h"
 #else
 #include "../gc_dvd.h"
 #include "../time.h"
@@ -84,7 +85,10 @@ void ensure_ipl_loaded(uint8_t* bios_buffer) {
 
     memset(metadata, 0, sizeof(ipl_metadata_t));
 
-    __SYS_ReadROM(bios_buffer, IPL_SIZE, 0);
+    const char* bios_path = "/ipl.bin";
+    if (get_file_size(bios_path) != IPL_SIZE || load_file_buffer(bios_path, bios_buffer)) {
+        __SYS_ReadROM(bios_buffer, IPL_SIZE, 0);
+    }
     Descrambler(bios_buffer + DECRYPT_START, IPL_ROM_FONT_SJIS - DECRYPT_START);
     memcpy(bs2, bios_buffer + BS2_CODE_OFFSET, bs2_size);
 
