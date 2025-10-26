@@ -19,7 +19,8 @@ If you have questions regarding this fork you can join the [Discord server](http
 5. Rename the Swiss dol to ```swiss-gc.dol``` and place it on your SD card
 
 ## Other ODEs (e.g. GC Loader)
-You can use the [```cubiboot.iso```](https://github.com/makeo/cubiboot/releases/latest/download/cubiboot.iso) and use it as appropriate for your ODE.\
+Download the [```cubiboot.iso```](https://github.com/makeo/cubiboot/releases/latest/download/cubiboot.iso) and use it as appropriate for your ODE.\
+Files and the config have to be stored on a separate SD2SP2, SD Gecko or similar SD adapter.\
 ODEs besides PicoLoader are not supported, and issues specific to these devices might not be fixed.
 
 ## Known Bugs
