@@ -3,6 +3,7 @@
 
 #include <string.h>
 #include "../os.h"
+#include "../flippy_sync.h"
 #include "../usbgecko.h"
 #include "tweaks.h"
 
@@ -82,15 +83,23 @@ void chainload_swiss_game(char* game_path, bool passthrough) {
         strcat(autoload_arg, game_path);
     }
 
+    char* igr_type = NULL;
+    dvd_custom_open_flash("/swiss/patches/apploader.img", FILE_ENTRY_TYPE_FILE, 0);
+    file_status_t* status = dvd_custom_status();
+    if (status != NULL && status->result == 0) {
+        igr_type = "IGRType=Apploader";
+    }
+
     const char* arg_list[] = {
         "swiss-gc.dol",
         autoload_arg,
-        "AutoBoot=Yes",
-        "IGRType=Reboot",
+        "AutoBoot=Yes"
         "BS2Boot=No",
         "Prefer Clean Boot=No",
+        igr_type,
         NULL
     };
+
     char* argz = (void*)info.max_addr + 32;
     struct __argv* args = (void*)(info.entrypoint + 8);
     int argz_len = setup_argv(arg_list, argz, args, ARGV_MAGIC);
