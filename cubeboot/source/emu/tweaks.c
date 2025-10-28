@@ -63,6 +63,52 @@ bool emu_has_dvd() {
     return true;
 }
 
+
+#define BNR_CACHE_SIZE 1024
+
+typedef struct {
+    u8 game_id[6];
+    u32 aram_offset;
+    bool valid;
+} bnr_cache_entry_t;
+
+static bnr_cache_entry_t bnr_cache[BNR_CACHE_SIZE] = {0};
+static u32 bnr_cache_next_index = 0;
+
+bool bnr_cache_get(u8 game_id[6], u32* aram_offset) {
+    if (!game_id || !aram_offset) {
+        return false;
+    }
+    
+    for (int i = 0; i < BNR_CACHE_SIZE; i++) {
+        if (bnr_cache[i].valid && memcmp(bnr_cache[i].game_id, game_id, 6) == 0) {
+            *aram_offset = bnr_cache[i].aram_offset;
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+void bnr_cache_put(u8 game_id[6], u32 aram_offset) {
+    if (!game_id) {
+        return;
+    }
+    
+    for (int i = 0; i < BNR_CACHE_SIZE; i++) {
+        if (bnr_cache[i].valid && memcmp(bnr_cache[i].game_id, game_id, 6) == 0) {
+            bnr_cache[i].aram_offset = aram_offset;
+            return;
+        }
+    }
+    
+    bnr_cache[bnr_cache_next_index].valid = true;
+    memcpy(bnr_cache[bnr_cache_next_index].game_id, game_id, 6);
+    bnr_cache[bnr_cache_next_index].aram_offset = aram_offset;
+    
+    bnr_cache_next_index = (bnr_cache_next_index + 1) % BNR_CACHE_SIZE;
+}
+
 #else
 
 #define IPL_ROM_FONT_SJIS	0x1AFF00
