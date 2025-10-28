@@ -21,7 +21,7 @@ If you have questions regarding this fork you can join the [Discord server](http
 ## Using In-Game Reset
 1. Download [```EXTRACT_TO_ROOT.zip```](https://github.com/makeo/cubiboot/releases/latest/download/EXTRACT_TO_ROOT.zip)
 2. Extract the contents to the root of the SD card
-3. Pressing Z + B + START whilst in a game brings you back to the cubiboot menu
+3. Pressing Z + A + START whilst in a game brings you back to the cubiboot menu
 
 ## Other ODEs (e.g. GC Loader)
 Download the [```cubiboot.iso```](https://github.com/makeo/cubiboot/releases/latest/download/cubiboot.iso) and use it as appropriate for your ODE.\
