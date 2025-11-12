@@ -115,3 +115,4 @@ patch_inst_pal "_patch_menu_alpha_setup" 0x81312c3c 0x81312284 0x81312d7c bl pre
 patch_inst_pal "_fix_video_mode_init" 0x81300520 0x81300520 0x81300610 bl get_tvmode
 
 patch_inst_global "_patch_pre_main" 0x81300090 bl pre_main
+patch_inst_global "_patch_ignore_args" 0x81300024  li r5, 0x0
